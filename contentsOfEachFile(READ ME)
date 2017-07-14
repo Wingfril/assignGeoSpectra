@@ -1,0 +1,148 @@
+In this file, you will find what each pro file of mine contains. 
+
+(f) is for functions; otherwise it is a procedue
+
+The sample format is
+
+NameOfDocument:
+    - routineToStartEverything, arguments needed 
+            : description
+    - supportingRoutine#1, arguments needed 
+            : description
+    - supportingRoutine#2 (f), arguments needed 
+            : description
+    etc etc
+
+DataCubeManipulation:
+
+    - Zi, (none) 
+            : Setting up the widget and starting the program
+
+    - getOutputDirectory, event 
+            : Retrieving where the user wants the output 
+            : path to be from button press
+
+    - getSpectrImage, event 
+            : Retrieving the spectra directory path from 
+            : button press
+
+    - getLatLon, event 
+            :  Retrieving the directory with guide image's 
+            :  longitude and latitude path
+
+    - resize, event 
+            : Does nothing
+
+    - create2D, event 
+            : Using the file paths from the inputs, we first
+            : look for all spectra files, and get the max size of
+            : apertures since they are not uniform. 
+            : We then loop through all spectra, and get their lat/lon
+            : information from the header. 
+            : We also get guideimage information, and we will keep
+            : track which images are associated with which guide images. 
+            : This program assumes that reference guide image lat/lon
+            : information is already there; see drm_cmap_sam for his code. 
+            : We match up lat/lon with emission angle and solar 
+            : incidence angle (mu and mu0). 
+            : Finally, we place the spectra side by side at all wavelengths. 
+            : We rotate it because I wasn't smart to rotate initially
+            : and along the way get a summed version
+            : Finally, we output maps of each wavelength and the 
+            : summed map, write the header, and call VIEWINGLAYER
+
+    - getMaxSize, file (list of spectra), numFiles, argument(which value to 
+        look for), maxsize = maxsize (max of aperture), 
+        wavemax = wavemax ( highest wavelength number)
+            : Since aperture number is uneven, get the largest number possible.
+ 
+    - collapsingCube (f), file (one single spectra), wavemax 
+            : returns an array that gives flux values at
+            : each aperture. 
+
+findgoodwave:
+    - findgoodwave, (none) 
+            : Hard coded a path to see, in a file, where the 
+            : numbers are not NAN
+
+getHeaderInfo:
+    - getHeaderInfo, (none) 
+            : Currently hardcoded guide file directory and spectra file 
+            : directory. It takes creates two csv files with the name of 
+            : the file and the time that file was taken
+
+getMuMu0:
+    - getMuMu0, lonArray, latArray, refPath, muArray = muArray, 
+        mu0Array = mu0Array
+            : This procedure is called from dataCubeManipulation
+            : and it uses the geometry csv from the guide image
+            : to match lon/lat with the lon/lat from each point
+            : on spectra. After we get the index of the 
+            : associated lon/lat, we can also get the emission
+            : angle and solar incidence angle ( mu and mu0)
+
+matching:
+    - findMatch, (none)
+            : Hardcoded path for now. 
+            : Attempts to find guide images and their respective spectra. 
+            : It does this by reading the CSV files created by the 
+            : other program, getHeaderTime. 
+            : We convert the time into seconds, and compare the time in 
+            : guide images to time in spectra. 
+            : If the times do not match up at all, find the difference 
+            : between the first spectra and the first guide image. 
+            : Apply the difference to all of the spectra and attempt to match
+
+    - stringToSec (f), timesStr, modding = modding
+            : Returns the time in seconds, and if modding is true, 
+            : this means that we passed through the 12 hour mark, and 
+            : and we need to adjust for that 
+
+matchingwavelength:
+    - matchwavelength, (none)
+            : junk file. 
+
+printFits:
+    -printFits, (none)
+            : Hardcoded a path to save in a csv to see the values in 
+              a guide image file. 
+
+writeMapHeader:
+    - writeMapHeader, outputpath (the file), geometryPath (path to list of 
+        reference geometry list, spectraPath (directory containing
+        all the spectra), guideList (string array which each 
+        element containing info about a guide image and the 
+        associated spectra numberings), guideListCounter (Since we didn't 
+        know the number of guides (shhh), we have a counter to keep track) 
+            : Write the geometry list path, the spectra directory path, and 
+            : all the guides and associated spectra numbering to a file. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

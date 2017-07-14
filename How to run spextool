@@ -1,0 +1,13 @@
+To run the new spextool (v4.1) while the old one is installed
+
+first, 
+IDL> .com /usr/local/Spextool/pro/ximgtool.pro
+
+second, 
+
+IDL> .com /usr/local/Spextool/pro/xspextool.pro
+
+also need to do 
+IDL> .com /prvt/kai/glenn3/astron_lib/pro/fits/mrd_hread.pro
+IDL> .com /prvt/kai/glenn3/astron_lib/pro/fits/mrdfits.pro
+IDL> .com /prvt/kai/glenn3/astron_lib/pro/fits/fxposit.pro
