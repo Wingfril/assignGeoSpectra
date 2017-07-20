@@ -1,5 +1,5 @@
-pro assignGeoCSV, num
-    outputPath = '/home/mziyan/TestData/16may12/guideimg/'+num
+pro assignGeoCSV, outputPath
+    ;outputPath = '/home/mziyan/TestData/16may12/guideimg/'+num
     ending = '.a.reftable'
     img = readfits(outputPath, header)
 
