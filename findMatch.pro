@@ -92,8 +92,8 @@ pro findMatch, guideRefPath, specRefPath, outputName, outputPath
 			; Put in the name and time first
 			resultArray[i,0] = spectraNames[i]
 			resultArray[i+1,0] = spectraNames[i+1]
-			;resultArray[i,1] = spectraTimes[i]
-			;resultArray[i+1,1] = spectraTimes[i+1]
+			resultArray[i,1] = spectraTimes[i]
+			resultArray[i+1,1] = spectraTimes[i+1]
 
 			; If the b times are greater than guide times, we need to 
 			; increment
@@ -117,22 +117,22 @@ pro findMatch, guideRefPath, specRefPath, outputName, outputPath
 			endif
 			resultArray[i,2] = guideNames[guideCount]
 			resultArray[i+1,2] = guideNames[guideCount]
-			;resultArray[i,3] = guideTimes[guideCount]
-			;resultArray[i+1,3] = guideTimes[guideCount]
+			resultArray[i,3] = guideTimes[guideCount]
+			resultArray[i+1,3] = guideTimes[guideCount]
 			
 		endfor
 	endelse	
 
 	; Output and write to a CVS file
 	openw, 1, outputPath+outputName,/APPEND
-    printf, 1, format='(A,",",A)', 'spectra','guides'
-	;printf, 1, format='(A,",",A, ",", A, ",", A)', 'spectra','		Time',$
-	;						'guides','		Time' 
+    	;printf, 1, format='(A,",",A)', 'spectra','guides'
+	printf, 1, format='(A,",",A, ",", A, ",", A)', 'spectra','		Time',$
+							'guides','		Time' 
 	for i = 0, spectraNumber[0] - 1, 1 do begin
-		;printf, 1, format='(A,",",A, ",", A, ",", A)', $
-        printf, 1, format='(A,",",A)', $
-				resultArray[i, 0], $;resultArray[i, 1], $
-				resultArray[i, 2];, resultArray[i, 3]
+		printf, 1, format='(A,",",A, ",", A, ",", A)', $
+        ;printf, 1, format='(A,",",A)', $
+				resultArray[i, 0], resultArray[i, 1], $
+				resultArray[i, 2], resultArray[i, 3]
 	endfor
 	close, 1
 end
