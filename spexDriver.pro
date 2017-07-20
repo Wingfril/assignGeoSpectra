@@ -25,9 +25,9 @@ pro spexDriver, guidePath, spectraPath, outputPath
 
     ; Retrieve the matched guide image and spectra from csv from above
     specGuideInfo = read_csv(outputPath+outputName, HEADER = specGuideHeader, $ 
-                   N_TABLE_HEADER = 2, TABLE_HEADER = specGuideTableHeader)
+                   N_TABLE_HEADER = 4, TABLE_HEADER = specGuideTableHeader)
     spectra = specGuideInfo.field1
-    guideImage = specGuideInfo.field2
+    guideImage = specGuideInfo.field3
    
     siz = size(spectra, /DIMENSIONS)
     flatpath = '/home/mziyan/TestData/17Mar29/cal/flat448-452.fits'
