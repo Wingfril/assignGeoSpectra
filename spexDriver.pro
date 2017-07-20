@@ -1,7 +1,7 @@
-pro spexDriver, guidePath, spectraPath, outputPath
+pro spexDriver, guidePath, spectraPath, outputPath, calpath
     gfileType = 'guideImages'
 	;guidePath = '/home/mziyan/TestData/17Mar29/guideimg/'
-	guideFiles = file_search(guidePath+'*.gz')
+	guideFiles = file_search(guidePath+'*')
     outputGuideFile = 'guideTime.reftable'	
 
 	sfileType = 'SpectraImages'
@@ -30,8 +30,14 @@ pro spexDriver, guidePath, spectraPath, outputPath
     guideImage = specGuideInfo.field3
    
     siz = size(spectra, /DIMENSIONS)
-    flatpath = '/home/mziyan/TestData/17Mar29/cal/flat448-452.fits'
-    wavecalPath = '/home/mziyan/TestData/17Mar29/cal/wavecal453-453.fits'
+    flatpaths = file_search(calpath+'*flat*')
+    wavecalPath = file_search(calpath+'*wavecal*')
+    
+    if N_ELEMENTS(flatpaths) eq 0 or N_ELEMENTS(wavecalPath) eq 0 then begin
+    	print, 'calibration files not found in path' + flatpath
+	goto badend
+    endif
+    
     ; Loop through the amount of raw spectra files
     for i = 0, siz[0]-2, 2 do begin
 
@@ -49,7 +55,7 @@ pro spexDriver, guidePath, spectraPath, outputPath
         files = [num1, num2]
         
         ; loaded image
-        spextool_zmo_loadImage, flatPath, wavecalPath, tempArr, 'A-B', files, /CLEAR, /BEEP
+        spextool_zmo_loadImage, flatPath[0], wavecalPath[0], tempArr, 'A-B', files, /CLEAR, /BEEP
         
         ; Guide Image problems
         ; assigned geometry
@@ -57,5 +63,5 @@ pro spexDriver, guidePath, spectraPath, outputPath
         zmo_inputGeometry, guideImage[i]
 
     endfor
-    
+    badend: 
 end
