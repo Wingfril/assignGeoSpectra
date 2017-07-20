@@ -55,12 +55,24 @@ pro create2D, event
    
     ; state.spectraPath contains the directory where all the spectra are stored
     ; and viceversa for everything else 
-    state.spectraPath = '/home/mziyan/TestData/17Mar29/proc/'
-    state.outputPath = '/home/mziyan/TestData/17Mar29/maps/'
-    state.lonlatPath = '/home/mziyan/TestData/17Mar29/guideimg/'
+    ;state.spectraPath = '/home/mziyan/TestData/17Mar29/proc/'
+    ;state.outputPath = '/home/mziyan/TestData/17Mar29/maps/'
+    ;state.guidePath = '/home/mziyan/TestData/17Mar29/guideimg/'
+    
+    guidefiles = file_search(state.guidePath+'*.gz')
+    numGuideFiles = size(guidefiles, /DIMENSIONS)
+    for i in numGuideFiles[0] - 1 do begin
+        assignGeoCSV, guideFiles[i]
+    endfor
+    
+    ; Create the spectra   
+    ; Parsing out ....maps/ part of state.outputpath. 
+    outputPath = STRMID(state.outputPath, 0, STRLEN(state.outpath) - 5
+    spexDriver, state.guidePath, state.spectraPath, outputPath
+    
 
     if state.spectraPath eq '' or state.outputPath eq '' or $
-       state.lonlatPath eq '' then begin
+       state.guidePath eq '' then begin
         print, 'Please select directory paths for ALL fields'       
         goto, ENDEVENT
     endif
@@ -305,10 +317,10 @@ common curState, state
              outputPath:'', $
              lat:0.0, $
              lon:0.0, $
-             lonlatPath:'', $
-             lonlatPathText:'', $
+             guidePath:'', $
+             guidePathText:'', $
              outputPathText:'', $
-             pickLonLatButton:0L, $
+             pickGuideButton:0L, $
              pickOutputButton:0L, $
              pickSpectraButton:0L, $
              settingBase:0L, $
@@ -339,9 +351,9 @@ common curState, state
 	state.spectraPathText = widget_text(state.buttonBase2, XSIZE = 84)
 
 	state.buttonBase3 = widget_base(state.buttonBaseAll, /ROW)
-	state.pickLonLatButton = widget_button(state.buttonBase3, $
+	state.pickGuideButton = widget_button(state.buttonBase3, $
                       EVENT_PRO ='getLatLon', VALUE = 'Lat/lon csv: ')
-	state.lonlatPathText = widget_text(state.buttonBase3, XSIZE = 84)
+	state.guidePathText = widget_text(state.buttonBase3, XSIZE = 84)
 
 	state.buttonBase4 = widget_base(state.buttonBaseAll)
 	state.beginProcessButton = widget_button(state.buttonBase4, $
@@ -380,10 +392,10 @@ end
 ;------------------------------------------------------------------------------
 pro getLatLon, event
 common curState, state
-	state.lonlatPath = DIALOG_PICKFILE(DIALOG_PARENT = state.widgetBase, $
+	state.guidePath = DIALOG_PICKFILE(DIALOG_PARENT = state.widgetBase, $
                       /DIRECTORY, $
                       TITLE = 'Choose directory with guide image lon/lat info')
-	widget_control, state.lonlatPathText, SET_VALUE = state.lonlatPath
+	widget_control, state.guidePathText, SET_VALUE = state.guidePath
 end
 
 
