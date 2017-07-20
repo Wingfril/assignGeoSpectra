@@ -66,9 +66,10 @@ findgoodwave:
             : numbers are not NAN
 
 getHeaderInfo:
-    - getHeaderInfo, (none) 
-            : Currently hardcoded guide file directory and spectra file 
-            : directory. It takes creates two csv files with the name of 
+    - getHeaderInfo, gfileType, guidePath, guideFiles, outputGuideFile, 
+        sfileType, spectraPath, spectraFiles, outputSpectraFile, 
+        outputPath
+            : It takes creates two csv files with the name of 
             : the file and the time that file was taken
 
 getMuMu0:
@@ -81,9 +82,8 @@ getMuMu0:
             : associated lon/lat, we can also get the emission
             : angle and solar incidence angle ( mu and mu0)
 
-matching:
-    - findMatch, (none)
-            : Hardcoded path for now. 
+findMatch:
+    - findMatch, guideRefPath, specRefPath, outputName, outputPath 	
             : Attempts to find guide images and their respective spectra. 
             : It does this by reading the CSV files created by the 
             : other program, getHeaderTime. 
@@ -105,7 +105,15 @@ matchingwavelength:
 printFits:
     -printFits, (none)
             : Hardcoded a path to save in a csv to see the values in 
-              a guide image file. 
+            : a guide image file. 
+
+spexDriver:
+    -zmo, (none)
+            : Hardcode in spectra and guide image path; this routine calls
+            : getHeaderInfo and then findMatch. This generates a csv with 
+            : a spectra name and its guide image.
+            : We then loop through every two spectra, and calls procedures
+            : from inside drm_xspextool to 
 
 writeMapHeader:
     - writeMapHeader, outputpath (the file), geometryPath (path to list of 

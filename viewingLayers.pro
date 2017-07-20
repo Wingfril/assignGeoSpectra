@@ -48,15 +48,18 @@ pro viewingLayers, imagePath
              getFilesButton:0L, $
              gotoSumLayerButton:0L, $
              imagesize:[0L, 0L], $
+             infoBase:0L, $
              layerChangeButton:0L, $
              layerInput:'', $
              layerLabel:0L, $
              latArray:ptr_new(''), $
              lonArray:ptr_new(''), $
+             lonlatLabel:'', $
              limbArray:ptr_new(2), $
-             manualCorrectImageButton, $
+             manualCorrectImageButton:0L, $
              muArray:ptr_new(''), $
              mu0Array:ptr_new(''), $
+             mumu0Label:'', $
              numFiles:0, $
              plotBase:0L, $
              plotwin:0L, $
@@ -64,9 +67,13 @@ pro viewingLayers, imagePath
              scaledImage:ptr_new(2), $
              scale:6, $
              settingBase:0L, $
+             smoothLayerButton:0L, $
              spectraPath:'', $
+             spectra:ptr_new(''), $
+             umLabel:'', $
              widgetBase:0L, $
              windowSize:0L, $
+             XYLabel:'', $
              x:0L, $
              y:0L}
     ; Get the file so we don't have a wierd sized screen when the widget is 
@@ -77,25 +84,41 @@ pro viewingLayers, imagePath
 	state.widgetBase = widget_base(TITLE = 'PLACEHOLDER TITLE', $
                                     /COLUMN, /TLB_SIZE_EVENTS)
 	state.settingBase = widget_base(state.widgetBase, /ROW)
+
+    state.infoBase = widget_base(state.widgetBase, /ROW)
     ;state.buttonBaseAll = widget_base(state.settingBase, /COLUMN)
     
 	; Dealing with buttons
     state.getFilesButton = widget_button(state.settingBase, $
-                       EVENT_PRO ='getFile', VALUE = 'Get new summed map')
+                       EVENT_PRO ='getFile', VALUE = 'Get File')
 
     state.fitLimbsButton = widget_button(state.settingBase, $
                        EVENT_PRO ='fitLimb', VALUE = 'Fit Limb')
 
-    ;state.layerLabel = widget_label(state.settingBase, VALUE = 'summed map')
-    state.layerInput = widget_text(state.settingBase, XSIZE = 20, /EDITABLE, VALUE = 'jump to a layer')
+    state.layerInput = widget_text(state.settingBase, XSIZE = 20, /EDITABLE, $
+                       VALUE = 'jump to a layer')
     state.layerChangeButton = widget_button(state.settingBase, $
                        EVENT_PRO ='changeMapEvent', VALUE = 'change layers')
     state.correctImageButton = widget_button(state.settingBase, $
                        EVENT_PRO ='correctImage', VALUE = 'Correct image')
     state.manualCorrectImageButton = widget_button(state.settingBase, $
-                       EVENT_PRO ='manualCorrectImage', VALUE = 'Correct image manually')
+                       EVENT_PRO ='manualCorrectImage', $
+                       VALUE = 'Correct image manually')
     state.gotoSumLayerButton = widget_button(state.settingBase, $
                        EVENT_PRO ='gotoSumLayer', VALUE = 'Go to Sum Layer')
+    state.smoothLayerButton = widget_button(state.settingBase, $
+                       EVENT_PRO ='smoothLayer', VALUE = 'Smooth layer')
+
+    state.layerLabel = widget_label(state.infoBase, $
+                       VALUE = 'Current layer: sum')
+    state.umLabel = widget_label(state.infoBase, $
+                       VALUE = 'Micron meter: summed flux')
+    state.XYLabel = widget_label(state.infoBase, $
+                       VALUE = 'X: 000.00, Y: 000.00')
+    state.lonlatLabel = widget_label(state.infoBase, $
+                       VALUE = 'Lat: 000.0000, Lon: 000.0000')
+    state.mumu0Label = widget_label(state.infoBase, $
+                       VALUE = 'Mu: 000.0000, Mu0: 000.0000')
 
     ; Creating the plot area for the maps
     state.plotBase = widget_base(state.widgetBase,$
@@ -125,6 +148,23 @@ end
 ;------------------------------------------------------------------------------
 pro getFile, event
     print, 'in getfile!'
+    imagePath = DIALOG_PICKFILE(DIALOG_PARENT = state.widgetBase, $
+                      TITLE = 'Choose sum.fits file')
+    tempstr = strmid(imagePath, strlen(imagePath) - 8)
+    if tempstr ne 'sum.fits' then begin
+        print, 'please select sum.fits file'    
+    endif else begin 
+        loadFile, imagepath
+    endelse
+end
+
+pro smoothLayer, event
+    common curState, state
+    if state.boolNewGeometry eq 0 then begin
+        print, 'Please assign limbs'
+    endif else begin   
+        ; Look at where it is in relation to center and look at limb coordinates.  
+    endelse
 end
 ;------------------------------------------------------------------------------
 ;------------------------------------------------------------------------------
@@ -210,25 +250,25 @@ pro correctImage, event
                 minim[2] = minim[1] 
                 minim[1] = minim[0] 
                 minim[0] = onLimbArrayContent[i] 
-            endif else if minim[1] lt onLimbArrayContent[i] $
+            endif else if minim[1] lt onLimbArrayContent[i] and $
             onLimbArrayContent[i] gt 0 then begin
 
                 minim[4] = minim[3] 
                 minim[3] = minim[2] 
                 minim[2] = minim[1] 
                 minim[1] = onLimbArrayContent[i] 
-            endif else if minim[2] lt onLimbArrayContent[i] $
+            endif else if minim[2] lt onLimbArrayContent[i] and $
             onLimbArrayContent[i] gt 0 then begin
 
                 minim[4] = minim[3] 
                 minim[3] = minim[2]  
                 minim[2] = onLimbArrayContent[i] 
-            endif else if minim[3] lt onLimbArrayContent[i] $
+            endif else if minim[3] lt onLimbArrayContent[i] and $
             onLimbArrayContent[i] gt 0 then begin
 
                 minim[4] = minim[3] 
                 minim[3] = onLimbArrayContent[i] 
-            endif else if minim[4] lt onLimbArrayContent[i] $
+            endif else if minim[4] lt onLimbArrayContent[i] and $
             onLimbArrayContent[i] gt 0 then begin
 
                 minim[4] = onLimbArrayContent[i] 
@@ -243,6 +283,7 @@ pro correctImage, event
                 x = onLimbCoordX[i]
                 y = onLimbCoordY[i]
                 shiftSpectra, x, y, tempimg, lowLimbAverage
+            endif
         endfor    
 
     endelse
@@ -257,8 +298,8 @@ pro shiftSpectra, x, y, tempimg, lowLimbAverage
     
     if y lt tempimgSize[1]/2 then begin
         start = 0
-        end = tempimg
-    endif else begins
+        ending = tempimg
+    endif ;else begins
 
 
     for i = 0, tempimgSize[1] do begin
@@ -279,6 +320,10 @@ pro shiftSpectra, x, y, tempimg, lowLimbAverage
         endfor
         writefits, state.files[i], newimage
     endfor
+end
+
+pro manualCorrectImage, event
+    common curState, state
 end
 ;------------------------------------------------------------------------------
 ; Handles initializing information. 
@@ -308,6 +353,7 @@ pro loadFile, imagepath
     ; respective array
     geometryPath = fxpar(curHeader,'GEOMPATH')
     state.spectraPath = fxpar(curHeader,'SPECPATH')
+    *state.spectra = readfits(state.spectraPath+'*')
     geometryInfo = read_csv(geometryPath, HEADER = geometryHeader, $ 
                    N_TABLE_HEADER = 4, TABLE_HEADER = geometryTableHeader)
     *state.latArray = geometryInfo.field1
@@ -329,6 +375,8 @@ pro loadFile, imagepath
             geometryListDivider = temparr
         endif
     endfor
+    print, geometryListDivider
+    help, geometryListDivider
     *state.geometryListDivider = geometryListDivider
     print, 'Found all index dividers in geometric reference list'
     print, 'Finding all map layer files'
@@ -340,7 +388,6 @@ pro loadFile, imagepath
     state.numFiles = N_ELEMENTS(files) + 1
     print, 'state.numFiles'
     print, state.numFiles
-print, files
     ; This way to append the sum.fits file to the rest of the map layers 
     temparr = STRARR(1)
     temparr[0] = imagepath
@@ -368,7 +415,7 @@ pro plotwinevent, event
     
     common curState, state
     print, 'in plotwinevent'
-
+    changeLoc = 0
     ; erase previous 
     wset, state.plotwinID & tvscl, (*state.scaledImage), $ 
             xsize = state.imagesize[0], ysize = state.imagesize[1]
@@ -378,60 +425,83 @@ pro plotwinevent, event
       
         state.x = fix(event.x/state.scale) * state.scale
         state.y = fix(event.y/state.scale) * state.scale
+        changeLoc = 1
     endif
     if (event.type eq 6) and (event.press eq 1) then begin
         case event.key of
             ; Changing selection of pixel
-            5 : state.x -= state.scale
-            6 : state.x += state.scale
-            7 : state.y += state.scale
-            8 : state.y -= state.scale
-            ; Changing currently selected layer
+            ; Left
+            5 : begin
+                    state.x -= state.scale
+                    changeLoc = 1
+                end
+            ; Right
+            6 : begin
+                    state.x += state.scale
+                    changeLoc = 1
+                end
+            ; Up
+            7 : begin
+                    state.y += state.scale
+                    changeLoc = 1
+                end
+            ; Down
+            8 : begin 
+                    state.y -= state.scale
+                    changeLoc = 1
+                end
+            ; Changing currently layer with page up and page down button
             9 : begin
-               if state.curPathIndex eq state.numfiles-1 then begin
-                   print, 'At last file'
-               endif else begin
-                   state.curPath = (*state.files)[state.curPathIndex + 1]
-                   state.curPathIndex += 1
-                   image = readfits (state.curPath)
-                   (*state.curImage) = image
-                   plotupdate 
-               endelse
-            end
+                   if state.curPathIndex eq state.numfiles-1 then begin
+                       print, 'At last file'
+                   endif else begin
+                       state.curPath = (*state.files)[state.curPathIndex + 1]
+                       state.curPathIndex += 1
+                       image = readfits (state.curPath)
+                       (*state.curImage) = image
+                       plotupdate 
+                   endelse
+                end
+           ; Changing currently layer with page up and page up button
             10 : begin
-               if state.curPathIndex eq 0 then begin
-                   print, 'At first file'
-               endif else begin
-                   state.curPath = (*state.files)[state.curPathIndex - 1]
-                   state.curPathIndex -= 1
-                   image = readfits(state.curPath)
-                   (*state.curImage) = image
-                   plotupdate      
-               endelse
-            end
+                   if state.curPathIndex eq 0 then begin
+                       print, 'At first file'
+                   endif else begin
+                       state.curPath = (*state.files)[state.curPathIndex - 1]
+                       state.curPathIndex -= 1
+                       image = readfits(state.curPath)
+                       (*state.curImage) = image
+                       plotupdate      
+                   endelse
+                end
         endcase
     
     endif    
 
-    if state.x lt 0 then begin
-        state.x = 0
-    endif 
-    if state.x gt (state.imagesize[0]-1)*state.scale then begin
-        state.x = (state.imagesize[0]-1)*state.scale
-    endif
-    if state.y lt 0 then begin
-        state.y = 0
-    endif 
-    if state.y gt (state.imagesize[1]-1)*state.scale then begin
-        state.y = (state.imagesize[1]-1)*state.scale
-    endif
+    ;if state.x lt 0 then begin
+    ;    state.x = 0
+    ;endif 
+    ;if state.x gt (state.imagesize[0]-1)*state.scale then begin
+    ;    state.x = (state.imagesize[0]-1)*state.scale
+    ;endif
+    ;if state.y lt 0 then begin
+    ;    state.y = 0
+    ;endif 
+    ;if state.y gt (state.imagesize[1]-1)*state.scale then begin
+    ;    state.y = (state.imagesize[1]-1)*state.scale
+    ;endif
     x = [state.x, state.x+state.scale, state.x+state.scale, state.x, state.x]
     y = [state.y, state.y, state.y-state.scale, state.y-state.scale, state.y]
-    updateInfoBar
-    plots,x,y,/device,color='0000FF'x
+
     if state.boolNewGeometry eq 1 then begin
         drawEllipse 
     endif
+
+    plots,x,y,/device,color='0000FF'x
+    updateInfoBar
+    if changeLoc eq 1 then begin
+          getGeometry
+    endif 
 end
 
 ;------------------------------------------------------------------------------
@@ -456,8 +526,13 @@ end
 pro updateInfoBar
     print, 'in updateinfoBar'
     common curState, state
-
-    getGeometry
+    if state.curPathIndex eq state.numFiles - 1 then begin
+        curUM = 'Micron meter: sum'
+    endif else begin
+        spectra = *state.spectra 
+        curUM = 'Micron meter: ' + strtrim(spectra[state.curPathIndex, 0, 0], 2)
+    endelse
+    
     val = 'X: '+strtrim(string(state.x,FORMAT='(f7.2)'),2)+ $
         ',  Y: '+strtrim(string(state.y,FORMAT='(f7.2)'),2)
     geomVal1 = 'Lat: ' + strtrim(state.curLat, 2) + $
@@ -465,17 +540,14 @@ pro updateInfoBar
 
     geomVal2 = 'Mu: ' + strtrim(state.curMu, 2) + $
               ', Mu0: ' + strtrim(state.curMu0, 2)
-    layerInfo = 'Layer: ' + state.curPath
-    wset, state.plotwinID
-    xyouts, state.imagesize[0] * state.scale, $
-        state.imagesize[1] * state.scale - 12, val, /DEVICE, COLOR = '0000FF', $
-        CHARSIZE = 10,FONT = 0, ALIGNMENT = 1
-    xyouts, state.imagesize[0] * state.scale, $
-        state.imagesize[1] * state.scale - 22, geomVal1, /DEVICE, COLOR = '0000FF', $
-        CHARSIZE = 10,FONT = 0, ALIGNMENT = 1
-    xyouts, state.imagesize[0]*state.scale, $
-        state.imagesize[1] * state.scale - 32, geomVal2, /DEVICE, COLOR = '0000FF', $
-        CHARSIZE = 10,FONT = 0, ALIGNMENT = 1
+    layerInfo = 'Layer: ' + strmid(state.curPath, strlen(state.curPath)-8, 3)
+    widget_control, state.layerLabel, SET_VALUE = layerInfo
+    widget_control, state.umLabel, SET_VALUE = curUM
+    widget_control, state.XYLabel, SET_VALUE = val
+    widget_control, state.lonlatLabel, SET_VALUE = geomVal1
+    widget_control, state.mumu0Label, SET_VALUE = geomVal2
+    
+    
     print, val
     print, geomVal1
     print, geomVal2
@@ -505,39 +577,74 @@ pro getGeometry
         print, N_ELEMENTS(geometryListDivider)
         print, realX
         print, realX
-        index = geometryListDivider[realX/2]
-        index += realY + 1
-
+        index = geometryListDivider[realY/2]
+        index += realX + 1
         state.curLat = latArray[index]
         state.curLon = lonArray[index]
         state.curMu = muArray[index]
         state.curMu0 = mu0Array[index]
     endif else begin
-        index = geometryListDivider[realX/2]
+        index = geometryListDivider[realY/2]
         spectraNum = fix(latArray[index] - 10000)
         spectraPath = state.spectraPath + 'spectra*' + STRTRIM(spectraNum,2) +'*'
         spectraHeader = headfits(spectraPath)
         newHeader = zmo_drm_ephemeris(spectraHeader,cancelevent, auto=auto, $
                                   specfun=specfun, ephem_header=ephem_header, $
                                   ephem_data=ephem_data)
-        fxaddpar,newHeader,'CX', state.centerX, 'center x of planettt'
-        fxaddpar,newHeader,'CY', state.centerY, 'center y of planettt'
+        fxaddpar,newHeader,'CX', state.centerX/6, 'center x of planettt'
+        fxaddpar,newHeader,'CY', state.centerY/6, 'center y of planettt'
         fxaddpar,newHeader,'CCW', -360.000, 'center y of planettt'
         newHeader = zmo_drm_lcm(newHeader)
-        ;print, newheader        
+        print, 'state.axisA and axisB '        
         print, state.axisA
         print, state.axisB
         b = 0.0  
-        ;a = state.axisA / state.axisB
-        ;b = float(state.axisB) / float(state.axisB)
-        ;c = state.axisA / state.axisB
+        a = float(state.axisA / state.axisB)
+        b = float(state.axisB) / float(state.axisB)
+        c = float(state.axisA) / float(state.axisB)
         ; since the axis are off, we need a to adjust for that
-        tempscale = state.axisB / state.axisA
-        realx = tempscale * realx
+        yscale = float(340 / (state.axisB/3)*49/36)
+        xscale = float(356 / (state.axisA/3))
+        print, 'axisA'
+        print, state.axisA/6
+        print, 'axisB'
+        print, state.axisB/6
+        print, 'state.centerx'
+        print, state.centerx
+        print, 'state.centery'
+        print, state.centery  
+        print, 'boundaries'
+        print, strtrim((fix(state.centerx/6) - xscale*state.axisA/6), 2)+','+ $
+               strtrim((fix(state.centerx/6) + xscale*state.axisA/6), 2)  
+        print, strtrim((fix(state.centery/6) - yscale*state.axisB/6), 2)+','+ $
+               strtrim((fix(state.centery/6) + yscale*state.axisB/6), 2) 
+        print, 'scaled x'
+        print, realx
+        print, 'scaled y'
+        print, realy
+        differX = (realx - fix(state.centerx/6))
+        differY = (realy - fix(state.centery/6))
+    
+        print, 'differX'
+        print, differX
+        print, 'differY'
+        print, differY
+
+        realx = differX * xscale + fix(state.centerx/6)
+        realy = differY * yscale + fix(state.centery/6)
+        ; 439 - 99 y
+        ; 448 - 92 
+        print, 'x'
+        print, realX
+        print, 'y'
+        print, realy
         status = zmo_pf_image_latlon(newHeader, realx, realy, lat, long, hit, error, a, b, c)
-        state.curLat = lat
-        state.curLon = long
-        
+        if status ne 0 then begin 
+            print, 'off planet'
+        endif else begin
+            state.curLat = lat
+            state.curLon = long
+        endelse
     endelse
     print, state.curLat
     print, state.curLon
@@ -621,6 +728,9 @@ pro fitLimb, event
     state.fitLimbsStep = state.scale
     state.axisA = state.imagesize[0]*3  
     state.axisB = state.imagesize[1]*3
+;cx_js = state.centerX
+;cy_js = state.centerY
+;status = fe_bplanetfit(cx_js=cx_js, cy_js=cy_js, data_id=data_id)
     drawEllipse 
 end
 
@@ -666,6 +776,7 @@ pro ChangeLimbLocation, event
             state.centery -= state.fitLimbsStep
         end
     endcase
+    state.boolChangeAxis = 1
     drawEllipse
 end
 ;------------------------------------------------------------------------------
@@ -720,9 +831,9 @@ pro drawEllipse
     plots,limbArray[0, *],limbArray[1, *], /device, color='0000FF'x
     plots, verticalLineX, verticalLineY, /device, color='0000FF'x
     plots, horizontalLineX, horizontalLineY, /device, color='0000FF'x
-    print, 'centerx, centery'
-    print, state.centerX
-    print, state.centerY
+    ;print, 'centerx, centery'
+    ;print, state.centerX
+    ;print, state.centerY
 end
 
 

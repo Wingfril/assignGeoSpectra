@@ -185,8 +185,13 @@ yesno = 'Yes'
 ;    end 
 ;  endcase
  ans = 'Yes'
-
-
+print, 'zmo_drm_lcm'
+print, 'lcmiii'
+print, lcmiii
+print, 'lcmii'
+print, lcmii
+print, 'lcmi'
+print, lcmi
 
 if ans eq 'Yes' then BEGIN
   if object eq 'jupiter' or object eq 'saturn' then begin

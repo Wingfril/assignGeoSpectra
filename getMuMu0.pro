@@ -32,7 +32,7 @@ pro getMuMu0, lonArray, latArray, refPath, muArray = muArray, $
         ;the lowest value 
 	    IF (bin eq -1) then begin
 		    closest = latList[0]	
-		    print,'min'
+		    ;print,'min'
 	    ENDIF ELSE BEGIN
             ; if it is greater than the greatest lat from the cmap, 
             ; set to the greatest

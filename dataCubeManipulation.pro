@@ -3,19 +3,20 @@
 ; Given a data cube, it return an 2d array. For each aperture, it has an 
 ; associated flux, and the array looks at the apertures flux at each wavelength
 ;------------------------------------------------------------------------------
-function collapsingCube, datacube, wavemax
+pro collapsingCube, datacube, wavemax, temparr = temparr, sumArray = sumArray
 size = size(datacube, /DIMENSIONS)
-array = FLTARR(size[2], wavemax)
+sumArray = FLTARR(size[2])
+temparr = FLTARR(size[2], wavemax)
 help, datacube
 for k = 0, size[2]-1 do begin
 		sum = 0		
 		for i = 0, size[0]-1 do begin
 			; The middle stays constant because it decides type of spectra/info
-		    array[k, i] = datacube[i,1,k]
+		    temparr[k, i] = datacube[i,1,k]
+            sumArray[k] += datacube[i, 0, k] * datacube[i, 1, k]
 		endfor
 endfor
 
-return, array
 end
 
 ;------------------------------------------------------------------------------
@@ -54,9 +55,9 @@ pro create2D, event
    
     ; state.spectraPath contains the directory where all the spectra are stored
     ; and viceversa for everything else 
-    state.spectraPath = '/home/mziyan/TestData/17May20/proc/'
-    state.outputPath = '/home/mziyan/TestData/17May20/maps/'
-    state.lonlatPath = '/home/mziyan/TestData/17May20/processedGuidePRISM/'
+    state.spectraPath = '/home/mziyan/TestData/17Mar29/proc/'
+    state.outputPath = '/home/mziyan/TestData/17Mar29/maps/'
+    state.lonlatPath = '/home/mziyan/TestData/17Mar29/guideimg/'
 
     if state.spectraPath eq '' or state.outputPath eq '' or $
        state.lonlatPath eq '' then begin
@@ -65,12 +66,13 @@ pro create2D, event
     endif
     widget_control, state.widgetBase, /DESTROY
     files = file_search(state.spectraPath+'spectra00*.fits')
+    print, files
     help, files
     siz = size(files, /DIMENSIONS)
 
     array = STRARR(siz)
 
-    ; We need maxsize to teel us the largest number of apertures; wavemax
+    ; We need maxsize to tell us the largest number of apertures; wavemax
     ; is the maximum wavelength (for example, in May 20th, 2017 data, the 
     ; wavemax is around 811. 
     ; total tells us the total amount of apertures
@@ -83,6 +85,7 @@ pro create2D, event
     lonArray = []
     muArray = []
     mu0Array = []
+    summedArray = FLTARR(maxSize, siz[0])
     positionArray = FLTARR(siz[0])
     lastGuide = ''
     guideCounter = 0
@@ -222,15 +225,16 @@ pro create2D, event
         mu0Array = temparr  
 
         ; Getting each (wavelength) layer of spectra
-	    temparr = collapsingCube(datacube, wavemax)
+	    collapsingCube, datacube, wavemax, temparr = temparr, sumArray = sumArray
 	    sizetemp = size(temparr, /DIMENSIONS)
 	    for j = 0, sizetemp[0]-1 do begin
             for k = 0, sizetemp[1]-1 do begin
 		        finalArray[i,j,k] = temparr[j,k]
             endfor
+            summedArray[j, i] = sumArray[j]
 	    endfor
     endfor
-
+help, finalArray
     ; We need to rotate the images, since we place the spectra side by side
     ; like |||||, where as it is supposed to be like ===
     ;                                                ===
@@ -240,11 +244,11 @@ pro create2D, event
         for i = 0, siz[0]-1 do begin
 	        for j = 0, maxSize-1 do begin
 		        rotatedFinalArray[j,i,k] = finalArray[i,j,k]
+            
 	        endfor
         endfor
     endfor
-    summedArray = FLTARR(maxSize, siz[0])
-
+help, rotatedFinalArray
     ; Outputs all maps at each wavelengths. 
     ; It also creates a summed up image as well. 
     for k = 0, wavemax - 1 do begin
@@ -255,7 +259,7 @@ pro create2D, event
                    rotatedFinalArray[*, *, k]
         for j = 0, siz[0]-1 do begin
             for i = 0, maxSize-1 do begin
-            summedArray[i, j] += rotatedFinalArray[i, j, k]
+            ;summedArray[i, j] += rotatedFinalArray[i, j, k]
             endfor
         endfor
     endfor
@@ -264,7 +268,7 @@ pro create2D, event
     writefits, state.outputPath + 'sum.fits', summedArray
 
     tempsize = size(mu0Array, /DIMENSIONS)
-    geometryPath = '/home/mziyan/TestData/17May20/maps/geometryList'
+    geometryPath = state.outputPath + 'geometryList'
     openw, 1, geometryPath ,/APPEND
 	printf, 1, format = '(A,",",A, ",", A, ",", A, ",", A, ",", A)', 'lat', $
                          '      lon','       mu','      mu0', $
