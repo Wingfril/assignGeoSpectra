@@ -289,7 +289,8 @@ pro correctImage, event
     endelse
 end
 
-
+;------------------------------------------------------------------------------
+;------------------------------------------------------------------------------
 pro shiftSpectra, x, y, tempimg, lowLimbAverage
     common curState, state
     tempimg /= lowLimbAverage
@@ -321,7 +322,8 @@ pro shiftSpectra, x, y, tempimg, lowLimbAverage
         writefits, state.files[i], newimage
     endfor
 end
-
+;------------------------------------------------------------------------------
+;------------------------------------------------------------------------------
 pro manualCorrectImage, event
     common curState, state
 end
@@ -651,7 +653,8 @@ pro getGeometry
     print, state.curMu
     print, state.curMu0
 end
-
+;------------------------------------------------------------------------------
+;------------------------------------------------------------------------------
 pro changeMapEvent, event
     common curState, state
     widget_control, state.layerInput, GET_VALUE = inputValue
@@ -780,7 +783,7 @@ pro ChangeLimbLocation, event
     drawEllipse
 end
 ;------------------------------------------------------------------------------
-;
+; This is called every time 
 ;------------------------------------------------------------------------------
 pro ChangeAxis, event
     common curState, state
@@ -804,14 +807,18 @@ pro ChangeAxis, event
 end
 
 ;------------------------------------------------------------------------------
-; Every time the image scale or 
-;
+; Every time the image scale or the center changes, drawEllipse will be called
+; It will also be called after fitting limbs is complete, so you can see the 
+; limbs while selecting pixel for lat/lot. 
+; This routine uses 
 ;------------------------------------------------------------------------------
 pro drawEllipse 
     common curState, state
     ; Erase previous limb fit
     wset, state.plotwinID & tvscl, (*state.scaledImage), $ 
             xsize = state.imagesize[0], ysize = state.imagesize[1]
+    ; Only calculate new limbArray if a change, such as axis change or
+    ; center change is made
     if state.boolChangeAxis eq 1 then begin
         limbArray = FLTARR(2, 361)    
         for i = 0, 360 do begin
@@ -824,16 +831,16 @@ pro drawEllipse
     endif else begin
         limbArray = *state.limbArray
     endelse
+    ; Create the center cross to denote center of planet
     verticalLineX = [state.centerX-12, state.centerX + 12]
     verticalLineY = [state.centerY, state.centerY]
     horizontalLineY = [state.centerY-12, state.centerY + 12]
     horizontalLineX = [state.centerX, state.centerX]
+    ; Plots the ellipse and then the center cross
     plots,limbArray[0, *],limbArray[1, *], /device, color='0000FF'x
     plots, verticalLineX, verticalLineY, /device, color='0000FF'x
     plots, horizontalLineX, horizontalLineY, /device, color='0000FF'x
-    ;print, 'centerx, centery'
-    ;print, state.centerX
-    ;print, state.centerY
+
 end
 
 
