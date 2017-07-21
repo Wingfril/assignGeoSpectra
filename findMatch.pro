@@ -45,16 +45,17 @@ pro findMatch, guideRefPath, specRefPath, outputName, outputPath
 	;outputPath = '/home/mziyan/TestData/17May20/'
 
 	; Retrieving guide names and guide times from the path above
-	guideInfo = read_csv(guideRefPath, HEADER = guideHeader, $
-                N_TABLE_HEADER = 2, TABLE_HEADER = guideTableHeader)
+	guideInfo = read_csv(guideRefPath, N_TABLE_HEADER = 1)
 	guideNames = guideInfo.field1
 	guideTimesStr = guideInfo.field2
-
+    print, guideNames
+    print, guideTimesStr
 	; Retrieving spectra names and spectra times from the path above
-	spectraInfo = read_csv(specRefPath, HEADER = spectraHeader, $
-                  N_TABLE_HEADER = 2, TABLE_HEADER = spectraTableHeader)
+	spectraInfo = read_csv(specRefPath, N_TABLE_HEADER = 1)
 	spectraNames = spectraInfo.field1
 	spectraTimesStr = spectraInfo.field2
+    print, spectraNames
+    print, spectraTimesStr
 	; Set up array; since there are more spectra than guide images, 
 	; we take the dimension of the spectra. There will be multiple
 	; guide images assigned to each spectra. 
@@ -136,3 +137,4 @@ pro findMatch, guideRefPath, specRefPath, outputName, outputPath
 	endfor
 	close, 1
 end
+

@@ -361,7 +361,7 @@ function drm_map_image_sam, header,head_tmp,img_path
  common  h,head
 
 @cmap_block.common
-
+print, header
  get_fits, header,head_tmp,aplan,dplan,delh,delv,ccw,bg,sigbg, $
      calib,sigcal,hra,hdec,hdist,gdist,lcm,relvel,cx,cy,xoffset,yoffset
  PRINT, 'IN DRM_MAP_IMAGE_SAM, 5'
@@ -1019,7 +1019,7 @@ while counti lt 360 do begin
 			csvlons[csvindex]=lon[counti,countj]
 			csvmus[csvindex]=acos(cza[counti,countj])
 			csvmu0s[csvindex]=acos(czas[counti,countj])
-        PRINT, CZA[COUNTI, COUNTJ]
+        PRINT, CZAS[COUNTI, COUNTJ]
 			csvindex=csvindex+1.0	
 		endif 
 		countj=countj+1

@@ -55,29 +55,36 @@ pro create2D, event
    
     ; state.spectraPath contains the directory where all the spectra are stored
     ; and viceversa for everything else 
-    ;state.spectraPath = '/home/mziyan/TestData/17Mar29/proc/'
-    ;state.outputPath = '/home/mziyan/TestData/17Mar29/maps/'
-    ;state.guidePath = '/home/mziyan/TestData/17Mar29/guideimg/'
-    
-    guidefiles = file_search(state.guidePath+'*.gz')
-    numGuideFiles = size(guidefiles, /DIMENSIONS)
-    for i in numGuideFiles[0] - 1 do begin
-        assignGeoCSV, guideFiles[i]
-    endfor
-    
-    ; Create the spectra   
-    ; Parsing out ....maps/ part of state.outputpath. 
-    outputPath = STRMID(state.outputPath, 0, STRLEN(state.outpath) - 5
-    spexDriver, state.guidePath, state.spectraPath, outputPath
-    
-
+    state.spectraPath = '/home/mziyan/TestData/17May31.2/spectra/'
+    state.outputPath = '/home/mziyan/TestData/17May31.2/maps/'
+    state.guidePath = '/home/mziyan/TestData/17May31.2/guideimg/'
+    state.calPath = '/home/mziyan/TestData/17May31.2/cal/'
     if state.spectraPath eq '' or state.outputPath eq '' or $
-       state.guidePath eq '' then begin
+       state.guidePath eq '' or state.calPath eq '' then begin
         print, 'Please select directory paths for ALL fields'       
         goto, ENDEVENT
     endif
     widget_control, state.widgetBase, /DESTROY
-    files = file_search(state.spectraPath+'spectra00*.fits')
+    print, 'Processing guide image files'
+    guidefiles = file_search(state.guidePath+'*')
+    numGuideFiles = size(guidefiles, /DIMENSIONS)
+    for i = 0, numGuideFiles[0] - 1 do begin
+        print, guideFiles[i]
+        if STRMATCH(guideFiles[i], '*reftable*') eq 0 then begin
+            ;drm_cmap_sam, guideFiles[i]
+        endif   
+    endfor    
+
+    print, 'Finished processing guide images'
+    print, 'Begin creating reduced spectra files'
+    ; Create the spectra   
+    ; Parsing out ....maps/ part of state.outputpath. 
+    outputPath = STRMID(state.outputPath, 0, STRLEN(state.outputpath) - 5)
+    ;spexDriver, state.guidePath, state.spectraPath, outputPath, state.calPath
+    
+    print, 'All spectra has been reduced'
+    files = file_search(outputPath+'/proc/spectra00*.fits')
+
     print, files
     help, files
     siz = size(files, /DIMENSIONS)
@@ -89,7 +96,6 @@ pro create2D, event
     ; wavemax is around 811. 
     ; total tells us the total amount of apertures
     getMaxSize, files, siz[0], 2, maxsize = maxsize, wavemax = wavemax
-    print, maxsize
 
     ; Initializing arrays. 
     ; positionArray to keep track where one pixel becomes the next pixel
@@ -125,7 +131,6 @@ pro create2D, event
         lon = strsplit(fxpar(header,'LONS'),',',/extract)
 
         guidePath = fxpar(header,'GUIDE')
-        print, guidePath
         spectraNumStr = STRMID(files[i], STRLEN(files[i])-10, 5)     
         
         ; We use a guideArray to keep track which spectra corresponded
@@ -142,7 +147,6 @@ pro create2D, event
         ; increment spectra counter.  
         if lastGuide ne guidePath and i ne 0 then begin
             
-            print, spectraNumStr
             higherNum = FIX(spectraNumStr) - 2
             lowerNum = higherNum - spectraCounter*2
             guideStr = lastGuide + ','+ STRING(lowerNum) + $
@@ -154,7 +158,7 @@ pro create2D, event
         lastGuide = guidePath
         spectraCounter += 1
         lonSize = SIZE(lon, /DIMENSIONS)        
-        print, files[i]
+        print, 'on file: ' + files[i]
 
         lonlatCounter = FIX(spectraNumStr)+10000  
         templonarr = FLTARR(lonSize[0])
@@ -269,11 +273,6 @@ help, rotatedFinalArray
         numbering = string(k, format = '(i3.3)')
         writefits, state.outputPath + 'map'+ numbering + '.fits', $
                    rotatedFinalArray[*, *, k]
-        for j = 0, siz[0]-1 do begin
-            for i = 0, maxSize-1 do begin
-            ;summedArray[i, j] += rotatedFinalArray[i, j, k]
-            endfor
-        endfor
     endfor
     
     ; Output the 
@@ -292,12 +291,14 @@ help, rotatedFinalArray
                 oriLatArray[i], oriLonArray[i]
 	endfor
 	close, 1
+    outputPath = STRMID(state.outputPath, 0, STRLEN(state.outputpath) - 5)
+    spectraPath = outputPath +'proc/'
     print, 'Writing information to header'
     writeMapHeader, state.outputPath + 'sum.fits', geometryPath, $
                     state.spectraPath, guideArray, guideCounter
     print, 'Finished updating header'
     viewingLayers, state.outputPath + 'sum.fits'
-    ENDEVENT: print, 'Exiting event..'
+    ENDEVENT: print, 'Exiting dataCubeManipulation...'
 end
 
 ;------------------------------------------------------------------------------
@@ -314,12 +315,16 @@ common curState, state
              buttonBase2:0L, $
              buttonBase3:0L, $
              buttonBase4:0L, $
+             buttonBase5:0L, $
+             calPath:'', $
+             calPathText:'', $
              outputPath:'', $
              lat:0.0, $
              lon:0.0, $
              guidePath:'', $
              guidePathText:'', $
              outputPathText:'', $
+             pickCalButton:0L, $
              pickGuideButton:0L, $
              pickOutputButton:0L, $
              pickSpectraButton:0L, $
@@ -347,16 +352,21 @@ common curState, state
 
 	state.buttonBase2 = widget_base(state.buttonBaseAll, /ROW)
 	state.pickSpectraButton = widget_button(state.buttonBase2, $
-                      EVENT_PRO ='getSpectrImage', VALUE = 'Spectra: ')
+                      EVENT_PRO ='getSpectrImage', VALUE = 'Raw spectra: ')
 	state.spectraPathText = widget_text(state.buttonBase2, XSIZE = 84)
 
 	state.buttonBase3 = widget_base(state.buttonBaseAll, /ROW)
 	state.pickGuideButton = widget_button(state.buttonBase3, $
-                      EVENT_PRO ='getLatLon', VALUE = 'Lat/lon csv: ')
+                      EVENT_PRO ='getGuide', VALUE = 'Guide Images: ')
 	state.guidePathText = widget_text(state.buttonBase3, XSIZE = 84)
 
-	state.buttonBase4 = widget_base(state.buttonBaseAll)
-	state.beginProcessButton = widget_button(state.buttonBase4, $
+	state.buttonBase4 = widget_base(state.buttonBaseAll, /ROW)
+	state.pickCalButton = widget_button(state.buttonBase4, $
+                      EVENT_PRO ='getCal', VALUE = 'Calibration: ')
+	state.calPathText = widget_text(state.buttonBase4, XSIZE = 84)
+
+	state.buttonBase5 = widget_base(state.buttonBaseAll)
+	state.beginProcessButton = widget_button(state.buttonBase5, $
                        EVENT_PRO ='create2D', VALUE = 'Begin')
 
 	; Once all widget set up is complete, create the widget
@@ -390,14 +400,24 @@ end
 ;------------------------------------------------------------------------------
 ; Retrieving the latitude and longitude directory path
 ;------------------------------------------------------------------------------
-pro getLatLon, event
+pro getGuide, event
 common curState, state
 	state.guidePath = DIALOG_PICKFILE(DIALOG_PARENT = state.widgetBase, $
                       /DIRECTORY, $
-                      TITLE = 'Choose directory with guide image lon/lat info')
+                      TITLE = 'Choose directory with guide image info')
 	widget_control, state.guidePathText, SET_VALUE = state.guidePath
 end
 
+;------------------------------------------------------------------------------
+; Retrieving the latitude and longitude directory path
+;------------------------------------------------------------------------------
+pro getCal, event
+common curState, state
+	state.calPath = DIALOG_PICKFILE(DIALOG_PARENT = state.widgetBase, $
+                      /DIRECTORY, $
+                      TITLE = 'Choose directory with calibration info')
+	widget_control, state.calPathText, SET_VALUE = state.calPath
+end
 
 ;------------------------------------------------------------------------------
 ; Does nothing except resizing. 
@@ -405,4 +425,5 @@ end
 pro resize, event
 common curState, state
 end
+
 

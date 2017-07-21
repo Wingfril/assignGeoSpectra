@@ -163,7 +163,35 @@ pro smoothLayer, event
     if state.boolNewGeometry eq 0 then begin
         print, 'Please assign limbs'
     endif else begin   
+        whereChange = 0
         ; Look at where it is in relation to center and look at limb coordinates.  
+        for i = 0, state.imagesize[0]-1 do begin    
+            limbArray = *state.limbArray
+            limby = where(limbArray[0, *] eq i*state.scale)
+            if (state.imagesize[1]-1)*state.scale gt state.centery and $
+               (state.imagesize[1]-1)*state.scale gt limbArray[1, limby[0]] $
+               then begin
+                image = (*state.curImage)
+
+                change = image[i, state.imagesize[1]-1]
+                ; we took the sky value at the top
+                whereChange = 1
+            endif else if (0)*state.scale lt state.centery and $
+                          (0)*state.scale lt limbArray[1, limby[0]] then begin
+                image = (*state.curImage)
+                change = image[i, 0]
+                ; we took the sky value at the top
+                whereChange = 2
+            endif
+            
+            for j = 0, state.imagesize[1] - 1 do begin
+                ;for k = 0, state.numFiles - 1 do begin
+                ;endfor
+                image[i, j] -= change
+            endfor
+            
+        endfor
+        writefits, state.curPath, image
     endelse
 end
 ;------------------------------------------------------------------------------
@@ -355,7 +383,9 @@ pro loadFile, imagepath
     ; respective array
     geometryPath = fxpar(curHeader,'GEOMPATH')
     state.spectraPath = fxpar(curHeader,'SPECPATH')
-    *state.spectra = readfits(state.spectraPath+'*')
+    spectraFile = file_search(state.spectraPath+'*')
+    *state.spectra = readfits(spectraFile[0])
+    print, spectraFile[0]
     geometryInfo = read_csv(geometryPath, HEADER = geometryHeader, $ 
                    N_TABLE_HEADER = 4, TABLE_HEADER = geometryTableHeader)
     *state.latArray = geometryInfo.field1
@@ -871,4 +901,5 @@ end
 pro resize, event
 common curState, state
 end
+
 

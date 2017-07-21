@@ -1,0 +1,57 @@
+ 
+; aplan = planetary RA  (degrees)
+; dplan = planetary declination  (degrees)
+
+
+ ae =  aplan*(!pi/180.0)-!pi
+ de = -dplan*(!pi/180.0)
+
+
+ delv   = drm_getfits(head_tmp, 'PIXSCALE',status=status)
+if(status NE 0) then begin
+ delv=drm_getfits(head_tmp, 'PLATE_SC')
+
+ delh   = drm_getfits(head_tmp, 'PIXSCALE', status=status)
+if(status NE 0) then begin
+ delh=drm_getfits(head_tmp, 'PLATE_SC')
+ endif
+
+; distance of object from the earth
+ gdist = drm_getfits(head_tmp,'DISTOBJ')
+ aucm   = 1.49598e13
+
+  (object eq 'jupiter' or object eq 'jup') : begin
+    recm=7.1398e9
+    recm=7.1492e9  ; BMF
+    oblat=0.06481
+    oblat=0.06487 ; BMF
+    omga=1.75853e-4 ; system III
+    apol1=268.04
+    dpol1= 64.49
+  end
+
+ ax = recm/(gdist*aucm)*(180.0/!pi)*3600.0
+ ax = ax/delh
+ by = ax*(1.-oblat)
+by = by/delv
+ ap = by
+o = ae/ap
+
+; heliocentric latitude
+ hdec  = drm_getfits(head_tmp,'HLAT')
+ soldec = -hdec *!pi /180.
+ds = soldec
+
+; heliocentric longitude
+ hra   = drm_getfits(head_tmp,'HLON')
+
+ras = float( (hra+180.0) mod 360 )
+if ras lt 0.0 then ras = ras + 360.
+;print,'ras ',ras
+ras = ras * !pi/180.	; convert to radians
+
+
+rae = float( (aplan+180.0) mod 360. )
+if rae lt 0.0 then rae = rae + 360.
+;print,'rae ',rae
+rae = rae * !pi/180.	; convert to radians

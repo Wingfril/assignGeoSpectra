@@ -1,7 +1,8 @@
 pro spexDriver, guidePath, spectraPath, outputPath, calpath
     gfileType = 'guideImages'
 	;guidePath = '/home/mziyan/TestData/17Mar29/guideimg/'
-	guideFiles = file_search(guidePath+'*')
+	tempGF = file_search(guidePath+'*')
+    guideFiles = tempGF[where(strmatch(tempGF, '*reftable*')eq 0)]
     outputGuideFile = 'guideTime.reftable'	
 
 	sfileType = 'SpectraImages'
@@ -13,9 +14,9 @@ pro spexDriver, guidePath, spectraPath, outputPath, calpath
 
     ; Get the time information from header files and put it into a cvs
     ; for both spectra and guide images	
-    getHeaderInfo, gfileType, guidePath, guideFiles, outputGuideFile, $
-                   sfileType, spectraPath, spectraFiles, outputSpectraFile, $
-                   outputPath
+    ;getHeaderInfo, gfileType, guidePath, guideFiles, outputGuideFile, $
+    ;               sfileType, spectraPath, spectraFiles, outputSpectraFile, $
+    ;               outputPath
     outputName = 'matchedGuidesAndSpectra.reftable'
 
     ; Based on the time, match guide images with spectra and output into 
@@ -24,27 +25,27 @@ pro spexDriver, guidePath, spectraPath, outputPath, calpath
                outputName, outputPath 
 
     ; Retrieve the matched guide image and spectra from csv from above
-    specGuideInfo = read_csv(outputPath+outputName, HEADER = specGuideHeader, $ 
-                   N_TABLE_HEADER = 4, TABLE_HEADER = specGuideTableHeader)
+    specGuideInfo = read_csv(outputPath+outputName)
     spectra = specGuideInfo.field1
     guideImage = specGuideInfo.field3
-   
+    print, specGuideInfo.field1
+    print, outputPath + outputName
     siz = size(spectra, /DIMENSIONS)
     flatpaths = file_search(calpath+'*flat*')
     wavecalPath = file_search(calpath+'*wavecal*')
     
     if N_ELEMENTS(flatpaths) eq 0 or N_ELEMENTS(wavecalPath) eq 0 then begin
     	print, 'calibration files not found in path' + flatpath
-	goto badend
+	goto, ENDEVENT
     endif
-    
+    print, spectra
     ; Loop through the amount of raw spectra files
     for i = 0, siz[0]-2, 2 do begin
 
         ; Making the array with an A and a B spectra
-        tempArr = [spectra[i], spectra[i+1]]
+        tempArr = [specGuideInfo.field1[i], specGuideInfo.field1[i+1]]
 
-        num1 = strmid(spectra[i], strlen(spectra[i])-10, 3)
+        num1 = strmid(specGuideInfo.field1[i], strlen(specGuideInfo.field1[i])-10, 3)
         if fix(num1) lt 100 then begin
             num1 = strmid(num1, 1)        
         endif
@@ -53,9 +54,9 @@ pro spexDriver, guidePath, spectraPath, outputPath, calpath
             num2 = strmid(num2, 1)        
         endif
         files = [num1, num2]
-        
+        print, files
         ; loaded image
-        spextool_zmo_loadImage, flatPath[0], wavecalPath[0], tempArr, 'A-B', files, /CLEAR, /BEEP
+        spextool_zmo_loadImage, flatPaths[0], wavecalPath[0], tempArr, 'A-B', files, /CLEAR, /BEEP
         
         ; Guide Image problems
         ; assigned geometry
@@ -63,5 +64,6 @@ pro spexDriver, guidePath, spectraPath, outputPath, calpath
         zmo_inputGeometry, guideImage[i]
 
     endfor
-    badend: 
+    ENDEVENT: print, 'Exiting spexDriver...'
 end
+
