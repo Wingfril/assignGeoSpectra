@@ -44,6 +44,8 @@ pro viewingLayers, imagePath
              fitLimbsLonLine:0L, $
              fitLimbsStepButton:0L, $
              fitLimbsStep:0L, $
+             fitLimbsTiltLeftButton:0L, $
+             fitLimbsTiltRightButton:0L, $
              geometryListDivider:ptr_new(''), $
              getFilesButton:0L, $
              gotoSumLayerButton:0L, $
@@ -56,6 +58,7 @@ pro viewingLayers, imagePath
              lonArray:ptr_new(''), $
              lonlatLabel:'', $
              limbArray:ptr_new(2), $
+             limbsTheta:0, $
              manualCorrectImageButton:0L, $
              muArray:ptr_new(''), $
              mu0Array:ptr_new(''), $
@@ -187,11 +190,17 @@ pro smoothLayer, event
             for j = 0, state.imagesize[1] - 1 do begin
                 ;for k = 0, state.numFiles - 1 do begin
                 ;endfor
+                print, image[i, j], change
                 image[i, j] -= change
+                print, image[i, j]
             endfor
-            
+            ;print, change
         endfor
+        (*state.curImage) = image
         writefits, state.curPath, image
+        image = readfits (state.curPath)
+        (*state.curImage) = image
+        plotupdate
     endelse
 end
 ;------------------------------------------------------------------------------
@@ -530,10 +539,10 @@ pro plotwinevent, event
     endif
 
     plots,x,y,/device,color='0000FF'x
-    updateInfoBar
     if changeLoc eq 1 then begin
           getGeometry
     endif 
+    updateInfoBar
 end
 
 ;------------------------------------------------------------------------------
@@ -597,7 +606,12 @@ pro getGeometry
     realY = state.y / state.scale
     geometryListDivider = *state.geometryListDivider
     latArray = *state.latArray
-    if state.boolNewGeometry eq 0 then begin
+    if realY lt 0 or realY gt state.imagesize[1] then begin
+        state.curLat = NaN
+        state.curLon = NaN
+        state.curMu = NaN
+        state.curMu0 = NaN
+    endif else if state.boolNewGeometry eq 0 then begin
         ; Assigning derefenced pointer to a variable for easier readability
         latArray = *state.latArray
         lonArray = *state.lonArray
@@ -609,22 +623,31 @@ pro getGeometry
         print, N_ELEMENTS(geometryListDivider)
         print, realX
         print, realX
-        index = geometryListDivider[realY/2]
+        index = geometryListDivider[realY]
         index += realX + 1
         state.curLat = latArray[index]
         state.curLon = lonArray[index]
         state.curMu = muArray[index]
         state.curMu0 = mu0Array[index]
     endif else begin
-        index = geometryListDivider[realY/2]
+        index = geometryListDivider[realY]
         spectraNum = fix(latArray[index] - 10000)
+        print, spectraNum
         spectraPath = state.spectraPath + 'spectra*' + STRTRIM(spectraNum,2) +'*'
         spectraHeader = headfits(spectraPath)
         newHeader = zmo_drm_ephemeris(spectraHeader,cancelevent, auto=auto, $
                                   specfun=specfun, ephem_header=ephem_header, $
                                   ephem_data=ephem_data)
-        fxaddpar,newHeader,'CX', state.centerX/6, 'center x of planettt'
-        fxaddpar,newHeader,'CY', state.centerY/6, 'center y of planettt'
+
+theta = state.limbsTheta * !CONST.PI / 180
+        centX = state.centerX(173 / state.axisA*cos(theta) + $
+                 160 / state.axisB*sin(theta)) * state.axisB/state.axisA
+        centY = state.centerY(160 / state.axisB*cos(theta) + $
+                 173 / state.axisA*sin(theta)) * state.axisA/state.axisA
+
+
+        fxaddpar,newHeader,'CX', centX, 'center x of planettt'
+        fxaddpar,newHeader,'CY', centY, 'center y of planettt'
         fxaddpar,newHeader,'CCW', -360.000, 'center y of planettt'
         newHeader = zmo_drm_lcm(newHeader)
         print, 'state.axisA and axisB '        
@@ -635,48 +658,43 @@ pro getGeometry
         b = float(state.axisB) / float(state.axisB)
         c = float(state.axisA) / float(state.axisB)
         ; since the axis are off, we need a to adjust for that
-        yscale = float(340 / (state.axisB/3)*49/36)
-        xscale = float(356 / (state.axisA/3))
+        ;yscale = float(340.0 / (state.axisB/3.0));*49/36)
+        ;xscale = float(356.0 / (state.axisA/3.0))
         print, 'axisA'
         print, state.axisA/6
         print, 'axisB'
         print, state.axisB/6
-        print, 'state.centerx'
-        print, state.centerx
-        print, 'state.centery'
-        print, state.centery  
-        print, 'boundaries'
-        print, strtrim((fix(state.centerx/6) - xscale*state.axisA/6), 2)+','+ $
-               strtrim((fix(state.centerx/6) + xscale*state.axisA/6), 2)  
-        print, strtrim((fix(state.centery/6) - yscale*state.axisB/6), 2)+','+ $
-               strtrim((fix(state.centery/6) + yscale*state.axisB/6), 2) 
-        print, 'scaled x'
-        print, realx
-        print, 'scaled y'
-        print, realy
-        differX = (realx - fix(state.centerx/6))
-        differY = (realy - fix(state.centery/6))
-    
-        print, 'differX'
-        print, differX
-        print, 'differY'
-        print, differY
+        print, 'centerx'
+        print, centX
+        print, 'centery'
+        print, centY 
+        ;print, 'boundaries'
 
-        realx = differX * xscale + fix(state.centerx/6)
-        realy = differY * yscale + fix(state.centery/6)
-        ; 439 - 99 y
-        ; 448 - 92 
-        print, 'x'
-        print, realX
-        print, 'y'
-        print, realy
-        status = zmo_pf_image_latlon(newHeader, realx, realy, lat, long, hit, error, a, b, c)
-        if status ne 0 then begin 
+        realX *= 6        
+        realY *= 6
+
+       
+        transX = realX(173 / state.axisA*cos(theta) + $
+                 160 / state.axisB*sin(theta)) * state.axisB/state.axisA
+        transY = realY(160 / state.axisB*cos(theta) + $
+                 173 / state.axisA*sin(theta)) * state.axisA/state.axisA
+        print, 'transx'
+        print, transX
+        print, 'transy'
+        print, transy
+        status = zmo_pf_image_latlon(newHeader, transX, transY, lat, long, hit, error, a, b, c)
+        if status ne 0 or hit eq 0 then begin 
             print, 'off planet'
         endif else begin
             state.curLat = lat
             state.curLon = long
-        endelse
+            ; jupguide 00254, line 67841
+            getMu0, newHeader, lat, long, mu0 = mu0
+            state.curMu0 = mu0
+            state.curMu = pf_get_mu( newHeader, [transX, transY], lat = lat, $
+                          long = long, sub_lat = sub_lat, sub_long = sub_long,$
+                          status = status) * !CONST.PI/2
+       endelse
     endelse
     print, state.curLat
     print, state.curLon
@@ -747,6 +765,12 @@ pro fitLimb, event
                             EVENT_PRO = 'changeAxis', $
                             VALUE = 'Decrease vertical axis radius', $
                             UVALUE = 'DecrB')
+    state.fitLimbsTiltRightButton = widget_button(state.fitLimbsBase, $
+                            EVENT_PRO = 'tiltLimb', $
+                            VALUE = 'Tilt Right', UVALUE = 'tiltRight')
+    state.fitLimbsTiltLeftButton = widget_button(state.fitLimbsBase, $
+                            EVENT_PRO = 'tiltLimb', $
+                            VALUE = 'Tilt Left' , UVALUE = 'tiltLeft')
     state.fitLimbsStepButton = widget_button(state.fitLimbsBase, $
                             EVENT_PRO = 'changeStep', $
                             VALUE = 'Make Step Large' )
@@ -836,6 +860,20 @@ pro ChangeAxis, event
     drawEllipse
 end
 
+pro tiltLimb, event
+    common curState, state
+    widget_control, event.id, GET_UVALUE = uvalue
+    case uvalue of
+        'tiltLeft' : begin
+            state.limbsTheta += state.fitLimbsStep / state.scale
+        end
+        'tiltRight' : begin
+            state.limbsTheta -= state.fitLimbsStep / state.scale
+        end
+    endcase
+    state.boolChangeAxis = 1
+    drawEllipse
+end
 ;------------------------------------------------------------------------------
 ; Every time the image scale or the center changes, drawEllipse will be called
 ; It will also be called after fitting limbs is complete, so you can see the 
@@ -851,10 +889,22 @@ pro drawEllipse
     ; center change is made
     if state.boolChangeAxis eq 1 then begin
         limbArray = FLTARR(2, 361)    
+        theta = state.limbsTheta * !CONST.PI/180
+            print, 'theta'
+            print, theta       
+            print, state.limbsTheta 
         for i = 0, 360 do begin
             radians = i * !CONST.PI/ 180
-            limbArray[0, i] = state.axisA * cos(radians) + state.centerX
-            limbArray[1, i] = state.axisB * sin(radians) + state.centerY
+         
+            limbArray[0, i] = state.axisA * cos(radians)*cos(theta)-$
+                              state.axisB * sin(radians)*sin(theta) $
+                              + state.centerX
+            limbArray[1, i] = state.axisA * cos(radians)*sin(theta)+$
+                              state.axisB * sin(radians)*cos(theta) $
+                              + state.centerY
+            ;print, limbArray[0, *]
+            ;print, '--'
+            ;print, limbArray[1, *]
         endfor
         *state.limbArray = limbArray
         state.boolChangeAxis = 0
