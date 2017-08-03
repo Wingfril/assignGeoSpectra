@@ -196,6 +196,7 @@ pro format, event
 
     if state.data.curPath ne state.data.files[0] or $
     state.data.boolNewGeometry ne 1 then begin
+        print, 'Please fit limbs to layer 0'
         goto, ENDEVENT
     endif
 
@@ -203,10 +204,12 @@ pro format, event
     ;fitLimb, 0
     ; It would take up too much memory to store all the limb data. We should
     ; create an array for each layer, and the data in the array will tell us the
-    ; cente roffset. 
+    ; center offset. 
 
     ; The average scaled value should be around 20% of largest value
 
+    ; Create an array with values as the centerX for each layer. 
+    ; THe first layer must be fitted before anything else continues
     offsetCenter = fltarr(state.data.numFiles)
     offsetCenter[0] = state.data.centerX
     ; Starting from the last offset center, look around left/right, moving 1
