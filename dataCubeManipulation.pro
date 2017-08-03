@@ -80,7 +80,7 @@ pro create2D, event
     ; Create the spectra   
     ; Parsing out ....maps/ part of state.outputpath. 
     outputPath = STRMID(state.outputPath, 0, STRLEN(state.outputpath) - 5)
-    ;spexDriver, state.guidePath, state.spectraPath, outputPath, state.calPath
+    ;spexDriver, state.guidePath, state.rawSpectraPath, outputPath, state.calPath
     
     print, 'All spectra has been reduced'
     files = file_search(outputPath+'/proc2/spectra00*.fits')
@@ -281,7 +281,7 @@ help, rotatedFinalArray
     spectraPath = outputPath +'proc2/'
     print, 'Writing information to header'
     writeMapHeader, state.outputPath + 'sum.fits', geometryPath, $
-                    spectraPath, guideArray, guideCounter
+                    state.spectraPath, guideArray, guideCounter
     print, 'Finished updating header'
     viewingLayers, state.outputPath + 'sum.fits'
     ENDEVENT: print, 'Exiting dataCubeManipulation...'
@@ -302,6 +302,7 @@ common curState, state
              buttonBase3:0L, $
              buttonBase4:0L, $
              buttonBase5:0L, $
+	     buttonBase6:0L, $
              calPath:'', $
              calPathText:'', $
              outputPath:'', $
@@ -314,9 +315,12 @@ common curState, state
              pickGuideButton:0L, $
              pickOutputButton:0L, $
              pickSpectraButton:0L, $
+	     pickRawSpectraButton:0L, $
              settingBase:0L, $
-             spectraPath:'', $
-             spectraPathText:'', $
+	     spectraPath:'', $
+             spectraPathText:'', $	     
+             rawSpectraPath:'', $
+             rawSpectraPathText:'', $
              widgetBase:0L, $
              windowSize:0L}
 
@@ -337,22 +341,27 @@ common curState, state
 	state.outputPathText= widget_text(state.buttonBase1, XSIZE = 80)
 
 	state.buttonBase2 = widget_base(state.buttonBaseAll, /ROW)
-	state.pickSpectraButton = widget_button(state.buttonBase2, $
-                      EVENT_PRO ='getSpectrImage', VALUE = 'Raw spectra: ')
-	state.spectraPathText = widget_text(state.buttonBase2, XSIZE = 84)
-
+	state.pickRawSpectraButton = widget_button(state.buttonBase2, $
+                      EVENT_PRO ='getRawSpectrImage', VALUE = 'Raw spectra: ')
+	state.rawSpectraPathText = widget_text(state.buttonBase2, XSIZE = 84)
+	
 	state.buttonBase3 = widget_base(state.buttonBaseAll, /ROW)
-	state.pickGuideButton = widget_button(state.buttonBase3, $
-                      EVENT_PRO ='getGuide', VALUE = 'Guide Images: ')
-	state.guidePathText = widget_text(state.buttonBase3, XSIZE = 84)
+	state.pickSpectraButton = widget_button(state.buttonBase3, $
+                      EVENT_PRO ='getSpectrImage', VALUE = 'Output spectra: ')
+	state.spectraPathText = widget_text(state.buttonBase3, XSIZE = 84)
 
 	state.buttonBase4 = widget_base(state.buttonBaseAll, /ROW)
-	state.pickCalButton = widget_button(state.buttonBase4, $
-                      EVENT_PRO ='getCal', VALUE = 'Calibration: ')
-	state.calPathText = widget_text(state.buttonBase4, XSIZE = 84)
+	state.pickGuideButton = widget_button(state.buttonBase4, $
+                      EVENT_PRO ='getGuide', VALUE = 'Guide Images: ')
+	state.guidePathText = widget_text(state.buttonBase4, XSIZE = 84)
 
-	state.buttonBase5 = widget_base(state.buttonBaseAll)
-	state.beginProcessButton = widget_button(state.buttonBase5, $
+	state.buttonBase5 = widget_base(state.buttonBaseAll, /ROW)
+	state.pickCalButton = widget_button(state.buttonBase5, $
+                      EVENT_PRO ='getCal', VALUE = 'Calibration: ')
+	state.calPathText = widget_text(state.buttonBase5, XSIZE = 84)
+
+	state.buttonBase6 = widget_base(state.buttonBaseAll)
+	state.beginProcessButton = widget_button(state.buttonBase6, $
                        EVENT_PRO ='create2D', VALUE = 'Begin')
 
 	; Once all widget set up is complete, create the widget
@@ -373,15 +382,27 @@ common curState, state
 end
 
 ;------------------------------------------------------------------------------
-; Retrieving the spectra directory path
+; Retrieving the output spectra directory path
 ;------------------------------------------------------------------------------
 pro getSpectrImage, event
     common curState, state
 	state.spectraPath = DIALOG_PICKFILE(DIALOG_PARENT = state.widgetBase, $
-                     /DIRECTORY, TITLE = 'Choose directory containing spectra')
+                     /DIRECTORY, TITLE = 'Choose directory containing output spectra')
 
 	widget_control, state.spectraPathText, SET_VALUE = state.spectraPath
 end
+
+;------------------------------------------------------------------------------
+; Retrieving the rawspectra directory path
+;------------------------------------------------------------------------------
+pro getRawSpectrImage, event
+    common curState, state
+	state.rawSpectraPath = DIALOG_PICKFILE(DIALOG_PARENT = state.widgetBase, $
+                     /DIRECTORY, TITLE = 'Choose directory containing raw spectra')
+
+	widget_control, state.rawSpectraPathText, SET_VALUE = state.rawSpectraPath
+end
+
 
 ;------------------------------------------------------------------------------
 ; Retrieving the latitude and longitude directory path
