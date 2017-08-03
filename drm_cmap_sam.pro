@@ -380,6 +380,7 @@ print, header
  ap = by
  ra2 = 1./(ax*ax)
  rb2 = 1./(by*by)
+print, 'ax, by, a
 ;print,'1',aplan,dplan,ccw
  thphi_cmap, aplan,dplan,theta,phi,ccw
  th = theta
@@ -979,6 +980,30 @@ xlon1 = 0
 ;xlatg(g) = atan(o*o*tan(latr(g)))
 
 czas = fltarr(nlat,nlon)  ; czas is mu0
+    print, 'ae'
+    print, ae
+print, 'ap'
+print, ap
+print, 'o'
+print, o
+print, 'ds'
+print, ds
+print, 'ras'
+print, ras
+print, 'rae'
+print, rae
+temp1 = where(latr eq -4*!PI/180)
+temp2 = where(lonr eq (235.174 + 228.213110911 - 360) * !PI / 180)
+print, 'temp1'
+print, temp1
+print, 'temp2'
+print, temp2
+
+print, 'latr[temp1]'
+print, latr[temp1]
+print, 'lonr[temp2]'
+print, lonr[temp2]
+
 
 if tau ge 1 then $   ; check output option, if not selected, skip it.
     czas(g) = cos(atan(o*o*tan(latr(g))))*cos(ds)*cos(lonr(g)-(ras-rae)) + $
@@ -987,6 +1012,19 @@ if tau ge 1 then $   ; check output option, if not selected, skip it.
 ng = where(czas lt 0. or czas gt 1.0)
 if ng(0) ne -1 then czas(ng) = 0.
 ng = 0
+
+PRINT, CZAS
+;------------------------------------------------------------------------------
+tempplat = latr(N_ELEMENTS(latr) - 1)
+tempplon = lonr(N_ELEMENTS(lonr) - 1)
+ignorethis = cos(atan(o*o*tan(tempplat)))*cos(ds)*cos(tempplon-(ras-rae)) + $
+              sin(atan(o*o*tan(tempplat)))*sin(ds)
+print, tempplat, tempplon
+print, 'final calculated MU0'
+print, ignorethis
+;------------------------------------------------------------------------------
+
+
 
 fname=imgpath+'.reftable'
 OPENW,31,fname
@@ -1003,8 +1041,11 @@ lonpix[where(lonr eq 1000 or latr eq 1000)] = 0
 latpix[where(lonr eq 1000 or latr eq 1000)] = 0
 lon=360.-lcm+lonr*180./!pi
 lat=latr*180./!pi
+;print, lon
 lon[where(lonr eq 1000 or latr eq 1000)] = !values.f_nan
 lat[where(lonr eq 1000 or latr eq 1000)] = !values.f_nan
+print, 'lcm'
+print, lcm
 print,'Writing to CSV...'
 counti=1
 help,latr
@@ -1019,7 +1060,7 @@ while counti lt 360 do begin
 			csvlons[csvindex]=lon[counti,countj]
 			csvmus[csvindex]=acos(cza[counti,countj])
 			csvmu0s[csvindex]=acos(czas[counti,countj])
-        PRINT, CZAS[COUNTI, COUNTJ]
+        ;PRINT, CZAS[COUNTI, COUNTJ]
 			csvindex=csvindex+1.0	
 		endif 
 		countj=countj+1
@@ -1225,6 +1266,9 @@ dplan = dec
 if(status NE 0) then begin
  delh=drm_getfits(head_tmp, 'PLATE_SC')
  endif
+
+    print, 'delh'
+    print, delh
 ; vertical step size in arc sec
  delv   = drm_getfits(head_tmp, 'PIXSCALE',status=status)
 if(status NE 0) then begin

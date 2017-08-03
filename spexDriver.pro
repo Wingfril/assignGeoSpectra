@@ -21,8 +21,8 @@ pro spexDriver, guidePath, spectraPath, outputPath, calpath
 
     ; Based on the time, match guide images with spectra and output into 
     ; csv
-    findMatch, outputPath+outputGuideFile, outputPath+outputSpectraFile, $
-               outputName, outputPath 
+    ;findMatch, outputPath+outputGuideFile, outputPath+outputSpectraFile, $
+    ;           outputName, outputPath 
 
     ; Retrieve the matched guide image and spectra from csv from above
     specGuideInfo = read_csv(outputPath+outputName)

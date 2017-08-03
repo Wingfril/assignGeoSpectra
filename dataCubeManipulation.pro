@@ -55,10 +55,10 @@ pro create2D, event
    
     ; state.spectraPath contains the directory where all the spectra are stored
     ; and viceversa for everything else 
-    state.spectraPath = '/home/mziyan/TestData/17May31.2/spectra/'
-    state.outputPath = '/home/mziyan/TestData/17May31.2/maps/'
-    state.guidePath = '/home/mziyan/TestData/17May31.2/guideimg/'
-    state.calPath = '/home/mziyan/TestData/17May31.2/cal/'
+    state.spectraPath = '/home/mziyan/TestData/17May31.1/spectra/'
+    state.outputPath = '/home/mziyan/TestData/17May31.1/maps/'
+    state.guidePath = '/home/mziyan/TestData/17May31.1/guideimg/'
+    state.calPath = '/home/mziyan/TestData/17May31.1/cal/'
     if state.spectraPath eq '' or state.outputPath eq '' or $
        state.guidePath eq '' or state.calPath eq '' then begin
         print, 'Please select directory paths for ALL fields'       
@@ -83,7 +83,7 @@ pro create2D, event
     ;spexDriver, state.guidePath, state.spectraPath, outputPath, state.calPath
     
     print, 'All spectra has been reduced'
-    files = file_search(outputPath+'/proc/spectra00*.fits')
+    files = file_search(outputPath+'/proc2/spectra00*.fits')
 
     print, files
     help, files
@@ -194,51 +194,37 @@ pro create2D, event
         endfor
 
         ; Retrieve information about emission angle and solar incidence angle
-        getMuMu0, templonarr, templatarr, guidePath, muArray = tempmuarr, $
-                  mu0Array = tempmu0arr
-
-        
-        ; DEBUGGING
-;------------------------------------------------------------------------------
-        temparr = [lonlatCounter, latt]
-        latt = temparr
-        temparr = [oriLatArray, latt]
-        oriLatArray = temparr
-
-        temparr = [lonlatCounter, lonn]
-        lonn = temparr
-        temparr = [oriLonArray, lonn]
-        oriLonArray = temparr
-;------------------------------------------------------------------------------
+        ;getMuMu0, templonarr, templatarr, guidePath, muArray = tempmuarr, $
+                  ;mu0Array = tempmu0arr
 
         ; We append a counter to differentiate between each pixel. 
         ; The last two lines in this block appends the array of lon 
         ; for this spectra to a large array that will contain longitude
         ; information regarding all spectra. 
-        temparr = [lonlatCounter, templonarr]
-        templonarr = temparr
-        temparr = [lonArray, templonarr]
-        lonArray = temparr
+        ;temparr = [lonlatCounter, templonarr]
+        ;templonarr = temparr
+        ;temparr = [lonArray, templonarr]
+        ;lonArray = temparr
 
         ; Same thing as above but for latitude
-        temparr = [lonlatCounter, templatarr]
-        templatarr = temparr
-        temparr = [latArray, templatarr]
-        latArray = temparr
+        ;temparr = [lonlatCounter, templatarr]
+        ;templatarr = temparr
+        ;temparr = [latArray, templatarr]
+        ;latArray = temparr
 
         ; Same thing as above, but for mu (emission angle)
-        temparr = [lonlatCounter, tempmuarr]
-        tempmuarr = temparr
-        temparr = [muArray, tempmuarr]
-        muArray = temparr        
+        ;temparr = [lonlatCounter, tempmuarr]
+        ;tempmuarr = temparr
+        ;temparr = [muArray, tempmuarr]
+        ;muArray = temparr        
         
         ; Same thing as above, but for mu0 (solar incidence)
         ; I think there is a easier way to append... but I'm lazy
          ; ¯\_(ツ)_/¯
-        temparr = [lonlatCounter, tempmu0arr]
-        tempmu0arr = temparr
-        temparr = [mu0Array, tempmu0arr]
-        mu0Array = temparr  
+        ;temparr = [lonlatCounter, tempmu0arr]
+        ;tempmu0arr = temparr
+        ;temparr = [mu0Array, tempmu0arr]
+        ;mu0Array = temparr  
 
         ; Getting each (wavelength) layer of spectra
 	    collapsingCube, datacube, wavemax, temparr = temparr, sumArray = sumArray
@@ -278,24 +264,24 @@ help, rotatedFinalArray
     ; Output the 
     writefits, state.outputPath + 'sum.fits', summedArray
 
-    tempsize = size(mu0Array, /DIMENSIONS)
+    ;tempsize = size(mu0Array, /DIMENSIONS)
     geometryPath = state.outputPath + 'geometryList'
-    openw, 1, geometryPath ,/APPEND
-	printf, 1, format = '(A,",",A, ",", A, ",", A, ",", A, ",", A)', 'lat', $
-                         '      lon','       mu','      mu0', $
-                         '      original lat', '      original lon'
-	for i = 0, tempsize[0] - 1 do begin
-		printf, 1, format='(A,",",A, ",", A, ",", A, ",", A, ",", A)', $
-				latArray[i], lonArray[i], $
-				muArray[i], mu0Array[i], $
-                oriLatArray[i], oriLonArray[i]
-	endfor
-	close, 1
+    ;openw, 1, geometryPath ,/APPEND
+	;printf, 1, format = '(A,",",A, ",", A, ",", A, ",", A, ",", A)', 'lat', $
+    ;                     '      lon','       mu','      mu0', $
+    ;                     '      original lat', '      original lon'
+	;for i = 0, tempsize[0] - 1 do begin
+	;	printf, 1, format='(A,",",A, ",", A, ",", A, ",", A, ",", A)', $
+	;			latArray[i], lonArray[i], $
+	;			muArray[i], mu0Array[i], $
+    ;            oriLatArray[i], oriLonArray[i]
+	;endfor
+	;close, 1
     outputPath = STRMID(state.outputPath, 0, STRLEN(state.outputpath) - 5)
-    spectraPath = outputPath +'proc/'
+    spectraPath = outputPath +'proc2/'
     print, 'Writing information to header'
     writeMapHeader, state.outputPath + 'sum.fits', geometryPath, $
-                    state.spectraPath, guideArray, guideCounter
+                    spectraPath, guideArray, guideCounter
     print, 'Finished updating header'
     viewingLayers, state.outputPath + 'sum.fits'
     ENDEVENT: print, 'Exiting dataCubeManipulation...'
