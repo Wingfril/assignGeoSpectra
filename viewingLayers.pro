@@ -407,9 +407,10 @@ pro saveFormattedImage, offsetCenter
                 endelse                
             endfor             
         endfor
-        writefits,  + 'map'+ numbering + '.fits', $
-                   totalImage   
-        
+	pathList = strsplit(self.data.curPath, '/', /EXTRACT)
+	path = strjoin(pathList[0:N_ELEMENTS(pathList)-1], '/']
+        writefits, path + 'formattedmap'+ numbering + '.fits', $
+                   totalImage  
     endfor
 end
 
