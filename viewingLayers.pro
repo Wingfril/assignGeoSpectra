@@ -426,7 +426,16 @@ pro saveFormattedImage, offsetCenter
         
         writefits, outputPath, totalimage  
         (*state.data.files)[i] = outputPath
-
+        
+        ; Adding references to previous paths and new paths
+        finalHeader = headfits(outputPath)
+        fxaddpar,finalHeader,'OLDPATH', (*state.data.refFiles)[i]
+        modfits, outputPath, 0, finalHeader
+        
+        finalHeader = headfits((*state.data.refFiles)[i])
+        fxaddpar,finalHeader,'NEWPATH', outputPath
+        modfits, (*state.data.refFiles)[i], 0, finalHeader
+        
     endfor
 end
 
@@ -466,38 +475,56 @@ pro shiftLayer, event
        'shiftRight' : begin
             for i = state.data.imagesize[0]*3-1, 1, -1 do begin
                 for j = 0, state.imagesize[1]*3 -1, do begin
-                    correctTempImg[i, j] $
-                    = correctTempImg[i-1, j]
+                    correctTempImg[i, j] = correctTempImg[i-1, j]
                 endfor
             endfor
         end
        'shiftLeft' : begin
             for i = 0, state.data.imagesize[0]*3 - 2 do begin
-                correctTempImg[i, $
-                state.data.imageY/state.data.scale+state.data.imageSize[1]] $
-                = correctTempImg[i+1, $
-                  state.data.imageY/state.data.scale + state.data.imageSize[1]]
+                for j = 0, state.imagesize[1]*3 -1, do begin
+                    correctTempImg[i, j] = correctTempImg[i+1, j]
+                endfor
             endfor
         end
        'shiftDown' : begin
-            for i = 0, state.data.imagesize[1]*3 - 2 do begin
-                correctTempImg[state.data.imageX/state.data.scale + $
-                state.data.imageSize[0], i] $
-                = correctTempImg[state.data.imageY/state.data.scale + $
-                  state.data.imageSize[0], i+1]
-            print, correctTempImg[state.data.imageX/state.data.scale, i]
+            for j = 0, state.imagesize[1]*3 -1, do begin
+                for i = 0, state.data.imagesize[1]*3 - 2 do begin
+                    correctTempImg[j, i] = correctTempImg[j, i+1]
+                endfor
             endfor
         end
        'shiftUp' : begin
-            for i = state.data.imagesize[1]*3-1, 1, -1 do begin
-                correctTempImg[state.data.imageX/state.data.scale + $
-                state.data.imageSize[0], i] $
-                = correctTempImg[state.data.imageX/state.data.scale + $
-                  state.data.imageSize[0], i-1]
-              
-            endfor   
+            for j = 0, state.imagesize[1]*3 -1, do begin
+                for i = state.data.imagesize[1]*3-1, 1, -1 do begin
+                    correctTempImg[j, i] = correctTempImg[j, i-1]
+                endfor   
+            endfor
     endcase
 end
+
+pro shiftLayerDone, event
+
+    pathList = strsplit(self.data.curPath, '/', /EXTRACT)
+    path = strjoin(pathList[0:N_ELEMENTS(pathList)-2], '/']
+    directoryType = 'UFormattedMaps/'
+ 
+    outputPath = path + directoryType + pathList[N_ELEMENTS(pathList)-1]
+        
+    writefits, outputPath, totalimage  
+    (*state.data.files)[i] = outputPath
+        
+    ; Adding references to previous paths and new paths
+    finalHeader = headfits(outputPath)
+    fxaddpar,finalHeader,'OLDPATH', (*state.data.refFiles)[i]
+    modfits, outputPath, 0, finalHeader
+        
+    finalHeader = headfits((*state.data.refFiles)[i])
+    fxaddpar,finalHeader,'NEWPATH', outputPath
+    modfits, (*state.data.refFiles)[i], 0, finalHeader
+
+end
+
+
 ;------------------------------------------------------------------------------
 ; This procedure will only run if you have already assigned limbs.
 ; It will only work on the current layer. 
@@ -665,7 +692,15 @@ pro smoothLayer, event
         
         writefits, outputPath, image  
         (*state.data.files)[state.data.curPathIndex] = outputPath
-
+       
+        ; Adding references to previous paths and new paths
+        finalHeader = headfits(outputPath)
+        fxaddpar,finalHeader,'OLDPATH', (*state.data.refFiles)[selt.data.curPathIndex]
+        modfits, outputPath, 0, finalHeader
+        
+        finalHeader = headfits((*state.data.refFiles)[selt.data.curPathIndex])
+        fxaddpar,finalHeader,'NEWPATH', outputPath
+        modfits, (*state.data.refFiles)[selt.data.curPathIndex], 0, finalHeader
         plotupdate
     endelse
 end
@@ -1103,7 +1138,26 @@ end
 
 pro correctImageDone, event
     common curState, state
-
+    pathList = strsplit(self.data.curPath, '/', /EXTRACT)
+    path = strjoin(pathList[0:N_ELEMENTS(pathList)-2], '/']
+    if pathList[N_ELEMENTS(pathList)-2] eq 'maps' do begin   
+        directoryType = 'UMaps/'
+    endif else begin
+        directoryType = 'UFormattedMaps/'
+    endelse
+ 
+    outputPath = path + directoryType + pathList[N_ELEMENTS(pathList)-1]
+    writefits, outputPath, totalimage  
+    (*state.data.files)[i] = outputPath
+    
+    ; Adding references to previous paths and new paths
+    finalHeader = headfits(outputPath)
+    fxaddpar,finalHeader,'OLDPATH', (*state.data.refFiles)[i]
+    modfits, outputPath, 0, finalHeader
+        
+    finalHeader = headfits((*state.data.refFiles)[i])
+    fxaddpar,finalHeader,'NEWPATH', outputPath
+    modfits, (*state.data.refFiles)[i], 0, finalHeader
 end
 
 pro updateSelection
@@ -1153,6 +1207,8 @@ pro loadFile, imagepath
     state.data.imagesize = SIZE(image, /DIMENSIONS)
     *state.data.curHeader = curHeader
 
+
+
     ; Retrieve geometry reference list path, read it, and put it into its
     ; respective array
     geometryPath = fxpar(curHeader,'GEOMPATH')
@@ -1189,7 +1245,17 @@ pro loadFile, imagepath
 
     ; This way, layer 0 is the first element, and as elements increase
     ; the layer number increases. The very last layer is the summed map. 
-    files = file_search(strmid(imagePath, 0, strlen(imagePath)-8)+'map*')
+   
+    pathList = strsplit(imagepath, '/', /EXTRACT)
+    newpath = fxpar(curHeader, 'FORMAT')
+    path = strjoin(pathList[0:N_ELEMENTS(pathList)-2], '/']
+    if TYPENAME(newpath) eq 'string' do begin
+        
+        path += 'formatted/map*'
+    endif else begin
+        path += 'maps/map*'
+    endelse
+    files = file_search(path)
     ;print, files
     state.data.numFiles = N_ELEMENTS(files) + 1
     ; This way to append the sum.fits file to the rest of the map layers 
@@ -1202,7 +1268,7 @@ pro loadFile, imagepath
     ; Check if an updated path exists
     for i = 0, state.data.numFiles - 1 do begin
         header = headfits(state.data.refFiles[i])
-        newpath = fxpar(header, 'newPath')
+        newpath = fxpar(header, 'NEWPATH')
         if TYPENAME(newpath) eq 'string' do begin
             (*state.data.files)[i] = newpath
         endif else begin
