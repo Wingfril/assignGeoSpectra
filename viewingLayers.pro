@@ -40,6 +40,7 @@ pro viewingLayers, imagePath
              mu0Array:ptr_new(''), $
              numFiles:0, $
              orientation:'vertical', $
+             refFiles:ptr_new(''), $
              scaledImage:ptr_new(2), $
              scale:6, $
              spectraPath:'', $
@@ -92,6 +93,13 @@ pro viewingLayers, imagePath
              settingBase:0L, $
              shift1:0L, $
              shift2:0L, $
+             shiftDown: 0L, $
+             shiftLeft: 0L, $
+             shiftRight: 0L, $
+             shiftUp: 0L, $
+             shiftLayerDone: 0L, $
+             shiftLayerBase: 0L, $
+             shiftLayerButton: 0L, $
              smoothLayerButton:0L, $
              umLabel:'', $
              widgetBase:0L, $
@@ -126,6 +134,9 @@ pro viewingLayers, imagePath
     state.widget.manualCorrectImageButton = widget_button(state.widget.settingBase, $
                        EVENT_PRO ='manualCorrectImage', $
                        VALUE = 'Shift manually')
+    state.widget.shiftLayerButton = widget_button(state.widget.settingBase, $
+                       EVENT_PRO ='shiftControl', $
+                       VALUE = 'shift Layer')
     state.widget.gotoSumLayerButton = widget_button(state.widget.settingBase, $
                        EVENT_PRO ='gotoSumLayer', VALUE = 'Go to Sum Layer')
     state.widget.smoothLayerButton = widget_button(state.widget.settingBase, $
@@ -407,16 +418,86 @@ pro saveFormattedImage, offsetCenter
                 endelse                
             endfor             
         endfor
-	pathList = strsplit(self.data.curPath, '/', /EXTRACT)
-	path = strjoin(pathList[0:N_ELEMENTS(pathList)-1], '/']
-        writefits, path + 'formattedmap'+ numbering + '.fits', $
-                   totalImage  
+	    pathList = strsplit(self.data.curPath, '/', /EXTRACT)
+	    path = strjoin(pathList[0:N_ELEMENTS(pathList)-2], '/']
+        directoryType = 'UFormattedMaps/'
+ 
+        outputPath = path + directoryType + pathList[N_ELEMENTS(pathList)-1]
+        
+        writefits, outputPath, totalimage  
+        (*state.data.files)[i] = outputPath
+
     endfor
 end
 
 
+pro shiftLayerControl, event 
+    common curstate, state
+    
+    state.widget.shiftLayerBase = widget_base(TITLE = 'Shift Layer', $
+                                    /COLUMN, /TLB_SIZE_EVENTS)
+                                    
+    state.widget.shiftUp = widget_button(state.widget.shiftLayerBase, $
+                            EVENT_PRO = 'shiftLayer', $
+                            VALUE = 'Shift Up', $
+                            UVALUE = 'shiftUp') 
+    state.widget.shiftDown = widget_button(state.widget.shiftLayerBase, $
+                            EVENT_PRO = 'shiftLayer', $
+                            VALUE = 'Shift Down', $
+                            UVALUE = 'shiftDown')    
+    state.widget.shiftLeft = widget_button(state.widget.shiftLayerBase, $
+                            EVENT_PRO = 'shiftLayer', $
+                            VALUE = 'Shift Up', $
+                            UVALUE = 'shiftUp') 
+    state.widget.shiftRight = widget_button(state.widget.shiftLayerBase, $
+                            EVENT_PRO = 'shiftLayer', $
+                            VALUE = 'Shift Down', $
+                            UVALUE = 'shiftDown') 
+    state.widget.shiftLayerDone = widget_button(state.widget.shiftLayerBase, $
+                            EVENT_PRO = 'ShiftLayerDone', $
+                            VALUE = 'Done' )
 
+end
 
+pro shiftLayer, event
+    common curState, state
+        widget_control, event.id, GET_UVALUE = uvalue
+    case uvalue of 
+       'shiftRight' : begin
+            for i = state.data.imagesize[0]*3-1, 1, -1 do begin
+                for j = 0, state.imagesize[1]*3 -1, do begin
+                    correctTempImg[i, j] $
+                    = correctTempImg[i-1, j]
+                endfor
+            endfor
+        end
+       'shiftLeft' : begin
+            for i = 0, state.data.imagesize[0]*3 - 2 do begin
+                correctTempImg[i, $
+                state.data.imageY/state.data.scale+state.data.imageSize[1]] $
+                = correctTempImg[i+1, $
+                  state.data.imageY/state.data.scale + state.data.imageSize[1]]
+            endfor
+        end
+       'shiftDown' : begin
+            for i = 0, state.data.imagesize[1]*3 - 2 do begin
+                correctTempImg[state.data.imageX/state.data.scale + $
+                state.data.imageSize[0], i] $
+                = correctTempImg[state.data.imageY/state.data.scale + $
+                  state.data.imageSize[0], i+1]
+            print, correctTempImg[state.data.imageX/state.data.scale, i]
+            endfor
+        end
+       'shiftUp' : begin
+            for i = state.data.imagesize[1]*3-1, 1, -1 do begin
+                correctTempImg[state.data.imageX/state.data.scale + $
+                state.data.imageSize[0], i] $
+                = correctTempImg[state.data.imageX/state.data.scale + $
+                  state.data.imageSize[0], i-1]
+              
+            endfor   
+    endcase
+end
 ;------------------------------------------------------------------------------
 ; This procedure will only run if you have already assigned limbs.
 ; It will only work on the current layer. 
@@ -572,13 +653,19 @@ pro smoothLayer, event
         ; Update the image, overwrite the original file.
         (*state.data.curImage) = image
 
+	    pathList = strsplit(self.data.curPath, '/', /EXTRACT)
+	    path = strjoin(pathList[0:N_ELEMENTS(pathList)-2], '/']
+        if pathList[N_ELEMENTS(pathList)-2] eq 'maps' do begin
+            directoryType = 'UMaps/'
+        endif else begin
+            directoryType = 'UFormattedMaps/'
+        endelse
+        
+        outputPath = path + directoryType + pathList[N_ELEMENTS(pathList)-1]
+        
+        writefits, outputPath, image  
+        (*state.data.files)[state.data.curPathIndex] = outputPath
 
-        ; Soooooooo the way I did it with load file is that it takes everything
-        ; that exists in /maps folder... so if we did write fits and then 
-        ; reload viewingLayers on /maps... uhhh bad things happen
-        ;writefits, state.data.curPath+'smooth', image
-        ;(*state.data.files)[state.data.curPathIndex] = $
-        ;                                         state.data.curPath + 'smooth'
         plotupdate
     endelse
 end
@@ -1105,16 +1192,24 @@ pro loadFile, imagepath
     files = file_search(strmid(imagePath, 0, strlen(imagePath)-8)+'map*')
     ;print, files
     state.data.numFiles = N_ELEMENTS(files) + 1
-    print, 'state.numFiles'
-    print, state.data.numFiles
     ; This way to append the sum.fits file to the rest of the map layers 
     temparr = STRARR(1)
     temparr[0] = imagepath
-    *state.data.files = [files, temparr]
+    *state.data.refFiles = [files, temparr]
     state.data.curPathIndex = N_ELEMENTS(files)
     print, 'Loaded all layer location'
+    
+    ; Check if an updated path exists
+    for i = 0, state.data.numFiles - 1 do begin
+        header = headfits(state.data.refFiles[i])
+        newpath = fxpar(header, 'newPath')
+        if TYPENAME(newpath) eq 'string' do begin
+            (*state.data.files)[i] = newpath
+        endif else begin
+            (*state.data.files)[i] = (*state.data.refFiles)[i]
+        endelse
+    endfor
     print, 'Loading data complete'
-
     
 end
 
