@@ -1,4 +1,3 @@
-
 ;------------------------------------------------------------------------------
 ; Given a data cube, it return an 2d array. For each aperture, it has an 
 ; associated flux, and the array looks at the apertures flux at each wavelength
@@ -55,7 +54,8 @@ pro create2D, event
    
     ; state.spectraPath contains the directory where all the spectra are stored
     ; and viceversa for everything else 
-    state.spectraPath = '/home/mziyan/TestData/17May31.1/spectra/'
+    state.spectraPath = '/home/mziyan/TestData/17May31.1/proc/'
+    state.rawSpectraPath = '/home/mziyan/TestData/17May31.1/spectra/'
     state.outputPath = '/home/mziyan/TestData/17May31.1/maps/'
     state.guidePath = '/home/mziyan/TestData/17May31.1/guideimg/'
     state.calPath = '/home/mziyan/TestData/17May31.1/cal/'
@@ -103,7 +103,7 @@ pro create2D, event
     lonArray = []
     muArray = []
     mu0Array = []
-    summedArray = FLTARR(maxSize, siz[0])
+    summedArray = FLTARR(siz[0],maxSize)
     positionArray = FLTARR(siz[0])
     lastGuide = ''
     guideCounter = 0
@@ -233,22 +233,26 @@ pro create2D, event
             for k = 0, sizetemp[1]-1 do begin
 		        finalArray[i,j,k] = temparr[j,k]
             endfor
-            summedArray[j, i] = sumArray[j]
+            summedArray[i,j] = sumArray[j]
 	    endfor
     endfor
-help, finalArray
-    ; We need to rotate the images, since we place the spectra side by side
-    ; like |||||, where as it is supposed to be like ===
-    ;                                                ===
-    ; So, for each layer/wavelength, we need to flip i and j    
-    rotatedFinalArray = FLTARR(maxSize, siz[0], wavemax)
+
+
+    help, finalArray
+
+    rotatedFinalArray = FLTARR(siz[0],maxSize, wavemax)
+    sumFinalArray = FLTARR(siz[0],maxSize)
     for k = 0, wavemax - 1 do begin
         for i = 0, siz[0]-1 do begin
 	        for j = 0, maxSize-1 do begin
-		        rotatedFinalArray[j,i,k] = finalArray[i,j,k]
-            
+		        rotatedFinalArray[i,j,k] = finalArray[siz[0]-1-i,maxSize-1-j,k]
+                if k eq 0 then begin
+                    sumFinalArray[i,j] = summedArray[siz[0]-1-i,maxSize-1-j]
+                endif
+
 	        endfor
         endfor
+
     endfor
 help, rotatedFinalArray
     ; Outputs all maps at each wavelengths. 
@@ -262,7 +266,7 @@ help, rotatedFinalArray
     endfor
     
     ; Output the 
-    writefits, state.outputPath + 'sum.fits', summedArray
+    writefits, state.outputPath + 'sum.fits', sumFinalArray
 
     ;tempsize = size(mu0Array, /DIMENSIONS)
     geometryPath = state.outputPath + 'geometryList'
@@ -302,7 +306,7 @@ common curState, state
              buttonBase3:0L, $
              buttonBase4:0L, $
              buttonBase5:0L, $
-	     buttonBase6:0L, $
+	         buttonBase6:0L, $
              calPath:'', $
              calPathText:'', $
              outputPath:'', $
@@ -432,5 +436,4 @@ end
 pro resize, event
 common curState, state
 end
-
 

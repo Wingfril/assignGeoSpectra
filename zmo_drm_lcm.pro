@@ -142,56 +142,8 @@ yesno = 'Yes'
 	else	: return,header
     endcase
 
-;-------------------------------------------------------------------
-;Display the calculated values on the screen, and ask the user to  
-;hit OK for the values to be written to the header.                
-;------------------------------------------------------------------- 
-
-
-
-
-;if(NOT keyword_set(auto)) then begin;
-;
-;  case object of 
-;    'jupiter' : begin
-;  	d = strarr(7)
-;  	d(0) = 'LCMI value at observation time: ' $
-;		+strcompress(string(lcmi),/REMOVE_ALL)
-; 	d(1) = ' '
-;  	d(2) = 'LCMII value at observation time: ' $
-;		+strcompress(string(lcmii),/REMOVE_ALL)
-;  	d(3) = ' '
-;  	d(4) = 'LCMIII value at observation time: ' $
-;		+strcompress(string(lcmiii),/REMOVE_ALL)
-;  	d(5) = ''
-;  	d(6) = 'Ok to input these into the header?'
-;  	ans = drm_yes_no_box(d)
-;    end
-;    'saturn' : begin
-;  	d = strarr(3)
-;  	d(0) = 'LCMIII value at observation time: ' $
-;		+strcompress(string(lcmiii),/REMOVE_ALL)
-;  	d(1) = ' '
-;  	d(2) = 'Ok to input this into the header?'
-;  	ans = drm_yes_no_box(d)
-;    end
-;    else : begin
-;  	d = strarr(3)
-;  	d(0) = 'LCM value at observation time: ' $
-;		+strcompress(string(lcm),/REMOVE_ALL)
-;  	d(1) = ' '
-;  	d(2) = 'Ok to input this into the header?'
-;  	ans = drm_yes_no_box(d)
-;    end 
-;  endcase
  ans = 'Yes'
-print, 'zmo_drm_lcm'
-print, 'lcmiii'
-print, lcmiii
-print, 'lcmii'
-print, lcmii
-print, 'lcmi'
-print, lcmi
+
 
 if ans eq 'Yes' then BEGIN
   if object eq 'jupiter' or object eq 'saturn' then begin

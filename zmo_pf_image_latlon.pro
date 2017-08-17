@@ -74,9 +74,6 @@ function zmo_pf_image_latlon, header,$                ; for ephemeris data
    error=''
    return, '^Cannot find CX or CY fields in FITS header.'
   end
-print, 'cx, cy'
-print, cx
-print, cy
 
 ;------------------------set up camera---------------------
  status =  pf_setup_camera( header, $
@@ -84,20 +81,8 @@ print, cy
                             loc_cam, c0, c1, $
                             loc_planet, p0, p1, $
                             pix_radians)
- print, 'in pf_image_latlon : 1'
 
-;planet_b *= b
-;planet_a *= a
-;planet_c *= c
 
-;print, 'planet_a, b, c'
-;print, planet_a
-;print, planet_b
-;print, planet_c
-
-print, 'x, y'
-print, x
-print, y
  if(keyword_set(status)) then return, status
  
  hit = pg_pix_2_latlon( loc_cam, c0, c1, $
@@ -107,11 +92,7 @@ print, y
                         cx, cy, $
                         x, y, $
                         lat, long )
- ;print, 'in pf_image_latlon'
- ;print, 'lat'
- ;print, lat
- ;print, 'long'
- ;print, long
+
   return, 0
 end
 ;=============================================================================.

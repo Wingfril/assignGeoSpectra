@@ -5,12 +5,9 @@ pro getMu0, head_tmp, lat, lon, mu0 = mu0
     ; Parsing info from header    
     ra = drm_getfits(head_tmp, 'RA')
     aplan = ra
-    print, 'ra'
-    print, aplan
+
     dec = drm_getfits(head_tmp, 'DEC')
     dplan = dec
-    print, 'DEC'
-    print, dplan
 
     ; Horizontal step size in arc sec
     delh = drm_getfits(head_tmp, 'PIXSCALE', status=status)
@@ -18,8 +15,6 @@ pro getMu0, head_tmp, lat, lon, mu0 = mu0
         delh = drm_getfits(head_tmp, 'PLATE_SC')
     endif
 
-    print, 'delh'
-    print, delh
     
     ; Vertical step size in arc sec
     delv= drm_getfits(head_tmp, 'PIXSCALE',status=status)
@@ -35,11 +30,6 @@ pro getMu0, head_tmp, lat, lon, mu0 = mu0
     hdec = drm_getfits(head_tmp,'HLAT')
     soldec = -hdec *!pi /180.
     ds = soldec
-    
-    print, 'distobj'
-    print, gdist
-    print, 'hlon, hlat'
-    print, hra, hdec 
 
 
     ae =  aplan*(!pi/180.0)-!pi
@@ -92,31 +82,12 @@ pro getMu0, head_tmp, lat, lon, mu0 = mu0
     ;print,'rae ',rae
     rae = rae * !pi/180.	; convert to radians
 
-    print, 'delh'
-    print, delh
-
-    print, 'ae'
-    print, ae
-print, 'ap'
-print, ap
-print, 'o'
-print, o
-print, 'ds'
-print, ds
-print, 'ras'
-print, ras
-print, 'rae'
-print, rae
-print, 'lat, lon'
-print, lat, lon 
 lat *= !CONST.PI/ 180
 lon = (lon  + lcm - 360)* !CONST.PI/ 180
-print, 'lat, lon'
-print, lat, lon 
+
         ; check output option, if not selected, skip it.
     czas = cos(atan(o*o*tan(lat)))*cos(ds)*cos(lon-(ras-rae)) + $
                   sin(atan(o*o*tan(lat)))*sin(ds)   
-    print, czas
     if czas lt 0 then begin
         czas = 0
     endif

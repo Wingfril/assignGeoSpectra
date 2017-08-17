@@ -1,0 +1,120 @@
+NOTE:
+------------------------
+To run DataCubeManipulation.pro, you will need
+- a folder named maps
+- a folder named proc
+- a folder named spectra
+- a folder named formattedMaps
+- a folder named UMaps
+- a folder named UFormatted
+- a folder named guideimg
+
+IF ANY OF THESE FOLDERS ARE NAMED WRONG, SH*T WILL HIT THE FAN
+
+Things that should be compiled
+
+getMu0
+getMuMu0
+dataCubeManipulation
+assignGeoCSV
+matching
+nearest_element
+spexDriver
+viewingLayers
+writeMapHeader
+zmo_drm_ephemeris
+zmo_drm_lcm
+zmo_pf_get_mu
+zmo_pf_image_latlon
+drm_spextool
+
+Spextool itself only deals with prism grating type. 
+Single-order Long and single-Order short are not supported
+
+
+RUNNING THE PROGRAM
+-------------------------------
+Step 1. 
+
+Run zmo_xgeom for every processed guide image
+
+Step 2. 
+
+Open up spextools
+
+Step 3.
+
+Update the paths to the respective directories
+
+Step 4.
+
+Create the Calibration files. 
+
+    There should be 5 flats followed by an arc. If the files are
+    flat.00236, flat.00237, flat.00238, flat.00239, flat.00240, 
+    arc.00241, enter in 236 - 241
+
+Step 5.
+
+Click on Spatial Extraction and reduce a single image. 
+
+    Under images, if 240.a and 241.b exists, type in 240-241
+    For the full flat and wavecal name, find the calibrated file.
+    It should be named something like flat236-240, wavecal241-241
+    Now click on load Image
+
+    When everything is load, click on Guide image and find
+    the respective guide image. 
+
+    Put the box on the slit; if the slit is too long vertically, 
+    put it in the middle... 
+
+    Exit out of the assign geometry window
+
+    Click Suggest/Flip Extraction Region
+
+    Click 'Go' under Make spatial profiles
+
+    Click the large horizontal button 'Extract'
+
+Step 6. 
+
+Run createLayers
+        
+    Input the respective directories and click 'Begin'
+    
+    If everything goes well (fingers crossed), it will first reduce all the 
+    
+
+Step 7.
+
+Format the layers
+
+    Click the format button on the right hand side.
+    
+    You will need to fit limbs several times; it would be total number of 
+    layers divided by 100, rounded up no matter what. 
+
+    YOU *****MUST***** fit the limbs for the very first (layer 0), and the 
+    layer right before sum.fits. For more accurate limb fittings, you should
+    look through all the layers beforehand and figure out when the planet stops
+    / starts moving (since for some odd reason the planet appears to shift...)
+
+    Once you're done fitting the limbs, click format again. 
+
+Step 8. 
+
+    Run ViewingLayers again
+
+
+
+
+
+
+
+
+
+
+
+
+
