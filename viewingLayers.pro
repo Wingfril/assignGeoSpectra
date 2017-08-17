@@ -80,6 +80,7 @@ pro viewingLayers, imagePath
              fitLimbsDecrB:0L, $
              fitLimbsLatLine:0L, $
              fitLimbsLonLine:0L, $
+             fitLimbsRescale:0L, $
              fitLimbsStepBut:0L, $
              fitLimbsStep:0L, $
              fitLimbsTiltLeft:0L, $
@@ -1933,6 +1934,9 @@ pro fitLimb, event
     state.widget.fitLimbsStepBut = widget_button(state.widget.fitLimbsBase, $
                             EVENT_PRO = 'changeStep', $
                             VALUE = 'Make Step Large' )
+    state.widget.fitLimbsRescale = widget_button(state.widget.fitLimbsBase, $
+                            EVENT_PRO = 'getscaleEvent', $
+                            VALUE = 'Rescale' )
     state.widget.fitLimbsDone = widget_button(state.widget.fitLimbsBase, $
                             EVENT_PRO = 'done', $
                             VALUE = 'Done' )
@@ -2126,6 +2130,13 @@ pro drawEllipse, silent = silent
         plots, horizontalLineX, horizontalLineY, /device, color='0000FF'x
     endif
 
+end
+
+pro getscaleEvent, event
+    common curState, state
+    ; BECAUSE FUCK YOU 
+    ;                  love, IDL
+    getscale
 end
 
 pro getscale
