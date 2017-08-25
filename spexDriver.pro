@@ -14,15 +14,15 @@ pro spexDriver, guidePath, spectraPath, outputPath, calpath
 
     ; Get the time information from header files and put it into a cvs
     ; for both spectra and guide images	
-    ;getHeaderInfo, gfileType, guidePath, guideFiles, outputGuideFile, $
-    ;               sfileType, spectraPath, spectraFiles, outputSpectraFile, $
-    ;               outputPath
+    getHeaderInfo, gfileType, guidePath, guideFiles, outputGuideFile, $
+                   sfileType, spectraPath, spectraFiles, outputSpectraFile, $
+                   outputPath
     outputName = 'matchedGuidesAndSpectra.reftable'
 
     ; Based on the time, match guide images with spectra and output into 
     ; csv
-    ;findMatch, outputPath+outputGuideFile, outputPath+outputSpectraFile, $
-    ;           outputName, outputPath 
+    findMatch, outputPath+outputGuideFile, outputPath+outputSpectraFile, $
+               outputName, outputPath 
 
     ; Retrieve the matched guide image and spectra from csv from above
     specGuideInfo = read_csv(outputPath+outputName)

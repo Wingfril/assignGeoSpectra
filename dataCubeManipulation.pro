@@ -71,7 +71,7 @@ pro create2D, event
     for i = 0, numGuideFiles[0] - 1 do begin
         print, guideFiles[i]
         if STRMATCH(guideFiles[i], '*reftable*') eq 0 then begin
-            ;drm_cmap_sam, guideFiles[i]
+            drm_cmap_sam, guideFiles[i]
         endif   
     endfor    
 
@@ -80,7 +80,7 @@ pro create2D, event
     ; Create the spectra   
     ; Parsing out ....maps/ part of state.outputpath. 
     outputPath = STRMID(state.outputPath, 0, STRLEN(state.outputpath) - 5)
-    ;spexDriver, state.guidePath, state.rawSpectraPath, outputPath, state.calPath
+    spexDriver, state.guidePath, state.rawSpectraPath, outputPath, state.calPath
     
     print, 'All spectra has been reduced'
     files = file_search(outputPath+'/proc2/spectra00*.fits')
@@ -194,37 +194,37 @@ pro create2D, event
         endfor
 
         ; Retrieve information about emission angle and solar incidence angle
-        ;getMuMu0, templonarr, templatarr, guidePath, muArray = tempmuarr, $
+        getMuMu0, templonarr, templatarr, guidePath, muArray = tempmuarr, $
                   ;mu0Array = tempmu0arr
 
         ; We append a counter to differentiate between each pixel. 
         ; The last two lines in this block appends the array of lon 
         ; for this spectra to a large array that will contain longitude
         ; information regarding all spectra. 
-        ;temparr = [lonlatCounter, templonarr]
-        ;templonarr = temparr
-        ;temparr = [lonArray, templonarr]
-        ;lonArray = temparr
+        temparr = [lonlatCounter, templonarr]
+        templonarr = temparr
+        temparr = [lonArray, templonarr]
+        lonArray = temparr
 
         ; Same thing as above but for latitude
-        ;temparr = [lonlatCounter, templatarr]
-        ;templatarr = temparr
-        ;temparr = [latArray, templatarr]
-        ;latArray = temparr
+        temparr = [lonlatCounter, templatarr]
+        templatarr = temparr
+        temparr = [latArray, templatarr]
+        latArray = temparr
 
         ; Same thing as above, but for mu (emission angle)
-        ;temparr = [lonlatCounter, tempmuarr]
-        ;tempmuarr = temparr
-        ;temparr = [muArray, tempmuarr]
-        ;muArray = temparr        
+        temparr = [lonlatCounter, tempmuarr]
+        tempmuarr = temparr
+        temparr = [muArray, tempmuarr]
+        muArray = temparr        
         
         ; Same thing as above, but for mu0 (solar incidence)
         ; I think there is a easier way to append... but I'm lazy
          ; ¯\_(ツ)_/¯
-        ;temparr = [lonlatCounter, tempmu0arr]
-        ;tempmu0arr = temparr
-        ;temparr = [mu0Array, tempmu0arr]
-        ;mu0Array = temparr  
+        temparr = [lonlatCounter, tempmu0arr]
+        tempmu0arr = temparr
+        temparr = [mu0Array, tempmu0arr]
+        mu0Array = temparr  
 
         ; Getting each (wavelength) layer of spectra
 	    collapsingCube, datacube, wavemax, temparr = temparr, sumArray = sumArray
@@ -270,17 +270,17 @@ help, rotatedFinalArray
 
     ;tempsize = size(mu0Array, /DIMENSIONS)
     geometryPath = state.outputPath + 'geometryList'
-    ;openw, 1, geometryPath ,/APPEND
-	;printf, 1, format = '(A,",",A, ",", A, ",", A, ",", A, ",", A)', 'lat', $
-    ;                     '      lon','       mu','      mu0', $
-    ;                     '      original lat', '      original lon'
-	;for i = 0, tempsize[0] - 1 do begin
-	;	printf, 1, format='(A,",",A, ",", A, ",", A, ",", A, ",", A)', $
-	;			latArray[i], lonArray[i], $
-	;			muArray[i], mu0Array[i], $
-    ;            oriLatArray[i], oriLonArray[i]
-	;endfor
-	;close, 1
+    openw, 1, geometryPath ,/APPEND
+	printf, 1, format = '(A,",",A, ",", A, ",", A, ",", A, ",", A)', 'lat', $
+                         '      lon','       mu','      mu0', $
+                         '      original lat', '      original lon'
+	for i = 0, tempsize[0] - 1 do begin
+		printf, 1, format='(A,",",A, ",", A, ",", A, ",", A, ",", A)', $
+				latArray[i], lonArray[i], $
+				muArray[i], mu0Array[i], $
+                oriLatArray[i], oriLonArray[i]
+	endfor
+	close, 1
     outputPath = STRMID(state.outputPath, 0, STRLEN(state.outputpath) - 5)
     spectraPath = outputPath +'proc2/'
     print, 'Writing information to header'
@@ -294,7 +294,7 @@ end
 ;------------------------------------------------------------------------------
 ; Setting up the widget and starting the program; this is the main driver
 ;------------------------------------------------------------------------------
-pro zi
+pro createLayers
 common curState, state
 
 	; State structure that will contain variable information and GUI widgets.

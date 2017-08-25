@@ -109,6 +109,7 @@ pro viewingLayers, imagePath
              shiftLayerBase: 0L, $
              shiftLayerButton: 0L, $
              smoothLayerButton:0L, $
+             toggleVersionButton:0L, $
              umLabel:'', $
              widgetBase:0L, $
              windowSize:0L, $
@@ -142,7 +143,7 @@ pro viewingLayers, imagePath
                        VALUE = 'Shift manually')
     state.widget.shiftLayerButton = widget_button(state.widget.settingBase, $
                        EVENT_PRO ='shiftLayerControl', $
-                       VALUE = 'shift Layer')
+                       VALUE = 'Shift Layer')
     state.widget.gotoSumLayerButton = widget_button(state.widget.settingBase, $
                        EVENT_PRO ='gotoSumLayer', VALUE = 'Go to Sum Layer')
     state.widget.smoothLayerButton = widget_button(state.widget.settingBase, $
@@ -162,6 +163,8 @@ pro viewingLayers, imagePath
                        VALUE = 'Lat: 000.0000, Lon: 000.0000')
     state.widget.mumu0Label = widget_label(state.widget.infoBase, $
                        VALUE = 'Mu: 000.0000, Mu0: 000.0000')
+    state.widget.toggleVersionButton = widget_button(state.widget.infoBase, $
+                       EVENT_PRO ='changeVersion', VALUE = 'Updated')
 
     ; Creating the plot area for the maps
     state.widget.plotBase = widget_base(state.widget.widgetBase,$
@@ -207,6 +210,43 @@ pro getFile, event
     endelse
 end
 
+pro changeVersion, event
+    common curState, state
+    widget_control, event.id, GET_VALUE = value
+
+    if value eq 'Old' then begin
+        header = headfits(state.data.curPath)
+        path = fxpar(header, 'OLDPATH')
+        if TYPENAME(path) eq 'STRING' then begin
+            image = readfits(path)
+            state.data.curpath = path
+            (*state.data.curImage) = image
+            plotupdate 
+            widget_control, state.widget.toggleVersionButton, $
+                        SET_VALUE = 'Updated'
+        endif else begin
+            print, 'There is no old version'
+        endelse
+        
+
+    endif else begin
+        header = headfits(state.data.curPath)
+        path = fxpar(header, 'NEWPATH')
+        if TYPENAME(path) eq 'STRING' then begin
+            image = readfits(path)
+            state.data.curPath = path
+            (*state.data.curImage) = image
+            plotupdate 
+            widget_control, state.widget.toggleVersionButton, $
+                            SET_VALUE = 'Old'
+        endif else begin
+            print, 'There is no updated version'
+        endelse
+        
+    endelse
+
+end
+
 ;------------------------------------------------------------------------------
 ; This *attempts* to fit limbs for each layer, given the inital fit for layer 0 
 ; It will save the location of the center x, since center y and the semi major
@@ -243,9 +283,10 @@ pro format, event
     axisA = mean((*state.data.saveData)[*, 3])
     axisB = mean((*state.data.saveData)[*, 4])
     centerX = mean((*state.data.saveData)[*, 1])
+    state.data.centerX = centerX
     changeLayers = (*state.data.saveData)[*, 0]
-    moveAveCounter = -1    
-
+    moveAveCounter = 0    
+(*state.data.saveData)[8, 0] = 812
     print, 'axisA'
     print, axisA
     print, 'axisB'
@@ -261,8 +302,8 @@ pro format, event
 
     for i  = 1,  N_ELEMENTS(moveAverage)-1 do begin
 
-        moveAverage[i] = (*state.data.saveData)[i, 1] - $
-                         (*state.data.saveData)[i-1, 1]
+        moveAverage[i] = (*state.data.saveData)[i, 2] - $
+                         (*state.data.saveData)[i-1, 2]
 
         ; How much change divided by the change in layers
         ; This is now how much it should change per layer butttttttttt idk...
@@ -270,7 +311,8 @@ pro format, event
                          (*state.data.saveData)[i-1, 0]
 
     endfor
-    print, moveAverage[i]
+    print, 'moveAverage
+    print, moveAverage
     ; It would take up too much memory to store all the limb data. We should
     ; create an array for each layer, and the data in the array will tell us 
     ;the center offset. 
@@ -280,7 +322,7 @@ pro format, event
     ; Create an array with values as the centerX for each layer. 
     ; THe first layer must be fitted before anything else continues
     offsetCenter = fltarr(state.data.numFiles)
-    offsetCenter[0] = (*state.data.saveData)[0, 1]
+    offsetCenter[0] = (*state.data.saveData)[0, 2]
     totalmoved = 0
 
 
@@ -296,7 +338,7 @@ pro format, event
         minim = max(tempimg)
     
         ; Change moveAveCounter, which decides expected shift based on curlayer
-        if changeLayers[moveAveCounter] le i then begin
+        if changeLayers[moveAveCounter] le a and moveAveCounter lt fix(state.data.numFiles/100)-1 then begin
             moveAveCounter += 1
         endif
 
@@ -333,13 +375,12 @@ pro format, event
         counter = 0
         aveCounter = 0
         aveTotal = 0
-        oriCenterX = state.data.centerX
+        oriCenterX = centerX
         oriCenterY = state.data.centerY
-
+        print, state.data.imageSize[0], state.data.imageSize[1]
         ; We check 6 pixels in either way lol. 
         for z = -6, 6 do begin
-
-            ; We reset centerX everytime, and we need to make boolchangeEllipse
+            ; We reset centerY everytime, and we need to make boolchangeEllipse
             ; true so things would be recalculated
             state.data.centerY = oriCenterY + z
             state.data.boolChangeEllipse = 1
@@ -476,17 +517,26 @@ pro format, event
     print, 'moveAverage[moveAveCounter]'
     print, moveAverage[moveAveCounter]
 
+    print, 'moveAveCounter'
+    print, moveAveCounter
+
+    print, '(*state.data.saveData)[*, 0]'
+    print, (*state.data.saveData)[*, 0]
+    print, '(*state.data.saveData)[*, 2]'
+    print, (*state.data.saveData)[*, 2]
+
     print, 'layer'
     print, a
 
+    print, ''
 
-    ; Put the best fitted limb into our array of center X's. 
+    ; Put the best fitted limb into our array of center Y's. 
     ; Tracking arr is the position it has moved from the last center
-    offsetCenter[a] = trackingArr[expectedMoveIndex] + oriCenterX
+    offsetCenter[a] = trackingArr[expectedMoveIndex] + oriCenterY
 
     totalmoved += trackingArr[expectedMoveIndex]
 
-    state.data.centerX = offsetCenter[a]
+    state.data.centerY = offsetCenter[a]
     state.data.boolChangeEllipse = 1
     drawEllipse, silent = 0
     print, 'Y center'
@@ -525,13 +575,14 @@ pro saveFormattedImage, offsetCenter
     ; The yaxis is the same, but since the image is stretched in the x
     ; direction, we need to make sure the size is large enough. 
     ; SIZE DOES MATTER hhehehehe (☞ﾟ∀ﾟ)☞
-    xAxis = state.data.imagesize[1]*2 + state.data.axisB/state.data.scale
-    yAxis = state.data.imagesize[0]
-
+    yAxis = state.data.imagesize[1]*2 + state.data.axisB/state.data.scale
+    xAxis = state.data.imagesize[0]
+    geometryListDivider = *state.data.geometryListDivider
+    latArray = *state.data.latArray
     ; All files need to be modified
     for i = 0, state.data.numFiles-1 do begin
         ; Create the new image with the new size
-        totalImage = fltarr(xAxis, yAxis)
+        totalImage = fltarr(xAxis, yAxis, 5)
     
         ; Change the current path and get the current image so we 
         ; can place it somewhere in the new image
@@ -545,15 +596,61 @@ pro saveFormattedImage, offsetCenter
         leftbound = YAxis/2 - offsetCenter[i]/state.data.scale
         rightbound = leftbound + state.data.imagesize[1]
 
-        
+
+        theta = state.data.limbsTheta * !CONST.PI / 180
+        axisA = state.data.axisA
+        axisB = state.data.axisB 
+        centX = (state.data.centerX*(state.data.xscale/ float(axisA)*cos(theta) + $
+                state.data.yscale / axisB*sin(theta)) * axisB/axisA)*$
+                (float(state.data.imagesize[0])/75.0)
+        centY = offsetCenter[i]*(state.data.xscale / float(axisB)*cos(theta) + $
+                state.data.yscale / axisA*sin(theta)) * float(axisA)/axisA* $
+                    (float(state.data.imagesize[1])/138.0)
+
         ; If the y axis does get to it, place the value into the new image
         ; otherwise, it should be black (aka the minimum on an image). 
-        for a = 0, yAxis-1 do begin 
-            for b = 0, xAxis-1 do begin
+        for b = 0, xAxis-1 do begin 
+            index = geometryListDivider[b]  
+            spectraNum = fix(latArray[index] - 10000)
+            spectraPath = state.data.spectraPath + 'spectra*' + $
+                              STRTRIM(spectraNum,2) +'*'
+            spectraHeader = headfits(spectraPath)
+            newHeader = zmo_drm_ephemeris(spectraHeader,cancelevent, auto=auto, $
+                                  specfun=specfun, ephem_header=ephem_header, $
+                                  ephem_data=ephem_data)
+
+            fxaddpar,newHeader,'CX', centX, 'center x of planettt'
+            fxaddpar,newHeader,'CY', centY, 'center y of planettt'
+            fxaddpar,newHeader,'CCW', -360.000, 'center y of planettt'
+            newHeader = zmo_drm_lcm(newHeader)
+
+            for a = 0, yAxis-1 do begin
+                transX = (b*(state.data.xscale/ float(axisA)*cos(theta) + $
+                          state.data.yscale / axisB*sin(theta)) * axisB/axisA) * $
+                         (float(state.data.imagesize[0])/75.0)
+                transY = a*(state.data.yscale/ axisB*cos(theta) + $
+                         state.data.xscale / axisA*sin(theta)) * axisA / axisA* $
+                    (float(state.data.imagesize[1])/138.0)
+
+                status = zmo_pf_image_latlon(newHeader, transX, transY, lat, long, $
+                                     hit, error, a, b, c)
+                mu = pf_get_mu( newHeader, [transX, transY], $
+                          lat = lat, long = long, sub_lat = sub_lat, $
+                          sub_long = sub_long, status = status) * !CONST.PI/2
+                getMu0, newHeader, lat, long, mu0 = mu0
+
                 if a gt leftbound  and a lt rightbound then begin
-                    totalImage[b,a] = curImage[b, a-leftbound]
+                    totalImage[b,a,0] = curImage[b, a-leftbound]
+                    totalImage[b,a,0] = lat
+                    totalImage[b,a,0] = lon
+                    totalImage[b,a,0] = mu
+                    totalImage[b,a,0] = mu0
                 endif else begin
-                    totalImage[b,a] = minim
+                    totalImage[b,a,0] = minim
+                    totalImage[b,a,1] = 0
+                    totalImage[b,a,2] = 0
+                    totalImage[b,a,3] = 0
+                    totalImage[b,a,4] = 0
                 endelse                
             endfor             
         endfor
@@ -851,14 +948,7 @@ pro smoothLayer, event
                 lowerLimbCoordY = temparr
             endif
         endfor
-        print, 'lowerLimbCoordX'
-        print, lowerLimbCoordX
-        print, 'upperLimbCoordX'
-        print, upperLimbCoordX
-        print, 'lowerLimbCoordY'
-        print, lowerLimbCoordY
-        print, 'upperLimbCoordY'
-        print, upperLimbCoordY
+
         ; Insertion sort since the upperLimbcoordX is mostly reversed and it
         ; is the fastest out of the non-recursive sorts
         for a = 1, N_ELEMENTS(lowerLimbCoordY) - 1 do begin
@@ -882,14 +972,7 @@ pro smoothLayer, event
         upperX = fltarr(state.data.imageSize[1])
 
         average = fltarr(state.data.imageSize[1])
-        print, 'lowerLimbCoordX'
-        print, lowerLimbCoordX
-        print, 'upperLimbCoordX'
-        print, upperLimbCoordX
-        print, 'lowerLimbCoordY'
-        print, lowerLimbCoordY
-        print, 'upperLimbCoordY'
-        print, upperLimbCoordY
+
             limbArray = *state.data.LimbArray
             
         for i = 0, state.data.imageSize[1] - 1 do begin 
@@ -1426,7 +1509,7 @@ pro correctImageDone, event
     ; Parsing and going up one directory, then deciding to goto formatted
     ; or UMaps. 
     pathList = strsplit(state.data.curPath, '/', /EXTRACT)
-    path = strjoin(pathList[0:N_ELEMENTS(pathList)-2], '/')
+    path = strjoin(pathList[0:N_ELEMENTS(pathList)-3], '/')
     if pathList[N_ELEMENTS(pathList)-2] eq 'maps' then begin   
         directoryType = '/UMaps/'
     endif else begin
@@ -1434,17 +1517,20 @@ pro correctImageDone, event
     endelse
  
     outputPath = '/' + path + directoryType + pathList[N_ELEMENTS(pathList)-1]
-    writefits, outputPath, totalimage  
-    (*state.data.files)[i] = outputPath
+    writefits, outputPath, *state.data.curimage  
+    (*state.data.files)[state.data.curPathIndex] = outputPath
     
     ; Adding references to previous paths and new paths
     finalHeader = headfits(outputPath)
-    fxaddpar,finalHeader,'OLDPATH', (*state.data.refFiles)[i]
+    fxaddpar,finalHeader,'OLDPATH', (*state.data.refFiles)[state.data.curPathIndex]
     modfits, outputPath, 0, finalHeader
         
-    finalHeader = headfits(*(state.data.refFiles)[i])
+    print, state.data.curPathIndex
+    print, 'nele'
+    print, n_elements((*state.data.refFiles))
+    finalHeader = headfits((*state.data.refFiles)[state.data.curPathIndex])
     fxaddpar,finalHeader,'NEWPATH', outputPath
-    modfits, *(state.data.refFiles)[i], 0, finalHeader
+    modfits, (*state.data.refFiles)[state.data.curpathIndex], 0, finalHeader
 end
 
 ;------------------------------------------------------------------------------
@@ -1513,6 +1599,7 @@ pro loadFile, imagepath
     *state.data.lonArray = geometryInfo.field2
     *state.data.muArray = geometryInfo.field3
     *state.data.mu0Array = geometryInfo.field4
+    state.data.boolNewGeometry = 0
     print, 'Read in geometric data complete'
     
     ; We set the pointer to a variable for better readability (personally...)
@@ -1536,7 +1623,6 @@ pro loadFile, imagepath
     ; look at the correct directory. 
     pathList = strsplit(imagepath, '/', /EXTRACT)
     newpath = fxpar(curHeader, 'FORMAT')
-    newpath = 0    
     path = strjoin(pathList[0:N_ELEMENTS(pathList)-3], '/')
     if TYPENAME(newpath) eq 'STRING' then begin
         openr, 2, path + '/formattedMaps/info'
@@ -1550,6 +1636,7 @@ pro loadFile, imagepath
         state.data.centerX = info[2]
         state.data.centerY = info[3]
         drawEllipse, silent = 0
+        state.data.formatted = 1
 
     endif else begin
         path += '/maps/map*'
@@ -1567,11 +1654,11 @@ pro loadFile, imagepath
     print, 'Loaded all layer location'
 
     ; Check if an updated path exists
-    for i = 0, state.data.numFiles - 1 do begin
+    for i = 0, state.data.numFiles - 2 do begin
         str = (*state.data.refFiles)[i]
        
         header = headfits(str)
-        ;newpath = fxpar(header, 'NEWPATH')
+        newpath = fxpar(header, 'NEWPATH')
 
         ; If NEWPATH doesn't exist, it would have returned 0. 
         if TYPENAME(newpath) eq 'STRING' then begin
@@ -1580,6 +1667,8 @@ pro loadFile, imagepath
             (*state.data.files)[i] = (*state.data.refFiles)[i]
         endelse
     endfor
+    (*state.data.files)[state.data.numFiles - 1] = $
+                                (*state.data.refFiles)[state.data.numFiles - 1]
     print, 'Loading data complete'
     image = readfits ((*state.data.files)[state.data.numFiles-1])
     *state.data.curImage = image
@@ -1675,12 +1764,12 @@ pro plotwinevent, event
     if state.data.x gt (state.data.imagesize[0]-1)*state.data.scale then begin
         state.data.x = (state.data.imagesize[0]-1)*state.data.scale
     endif
-    ;if state.data.y lt 0 then begin
-    ;    state.data.y = 0
-    ;endif 
-    ;if state.data.y gt (state.data.imagesize[1]-1)*state.data.scale then begin
-    ;    state.data.y = (state.data.imagesize[1]-1)*state.data.scale
-    ;endif
+    if state.data.y lt 0 then begin
+        state.data.y = 0
+    endif 
+    if state.data.y gt (state.data.imagesize[1]-1)*state.data.scale then begin
+        state.data.y = (state.data.imagesize[1]-1)*state.data.scale
+    endif
     
     ; Set up array to plot the selected square
     x = [state.data.x, state.data.x+state.data.scale, $
@@ -1706,8 +1795,21 @@ end
 pro plotupdate
     common curState, state
     ; Scale the original image to however large state.data.scale is. 
-    scalImage = CONGRID((*state.data.curImage), state.data.imagesize[0] * $
-                 state.data.scale, state.data.imagesize[1]*state.data.scale)
+
+    
+    header = headfits(state.data.curpath)
+    newpath = fxpar(header, 'OLDPATH')
+    if TYPENAME(newpath) eq 'STRING' then begin
+        (*state.data.files)[state.data.curPathIndex] = newpath
+        widget_control, state.widget.toggleVersionButton, SET_VALUE = 'Old'
+    endif
+    if state.data.formatted eq 1 then begin
+        scalImage = CONGRID((*state.data.curImage)[*,*,0], state.data.imagesize[0] * $
+                    state.data.scale, state.data.imagesize[1]*state.data.scale)
+    endif else begin
+        scalImage = CONGRID((*state.data.curImage), state.data.imagesize[0] * $
+                    state.data.scale, state.data.imagesize[1]*state.data.scale)
+    endelse
     *state.data.scaledImage = scalImage
     wset, state.widget.plotwinID 
     tvscl, (*state.data.scaledImage), $ 
@@ -1763,13 +1865,12 @@ pro getGeometry
     latArray = *state.data.latArray
 
     ; If we are outside of the boundariessss
-    ;if realY lt 0 or realY ge state.data.imagesize[1] then begin
-    ;    state.data.curLat = 'NaN'
-    ;    state.data.curLon = 'NaN'
-    ;    state.data.curMu = 'NaN'
-    ;    state.data.curMu0 = 'NaN'
-    ;endif else 
-    if state.data.boolNewGeometry eq 0 then begin
+    if realY lt 0 or realY ge state.data.imagesize[1] then begin
+        state.data.curLat = 'NaN'
+        state.data.curLon = 'NaN'
+        state.data.curMu = 'NaN'
+        state.data.curMu0 = 'NaN'
+    endif else if state.data.boolNewGeometry eq 0 then begin
         ; Assigning derefenced pointer to a variable for easier readability
         latArray = *state.data.latArray
         lonArray = *state.data.lonArray
@@ -2134,11 +2235,15 @@ end
 
 pro getscaleEvent, event
     common curState, state
-    ; BECAUSE FUCK YOU 
+    ; BECAUSE FK YOU 
     ;                  love, IDL
     getscale
 end
 
+;------------------------------------------------------------------------------
+;
+;
+;------------------------------------------------------------------------------
 pro getscale
     common curState, state
 
@@ -2147,10 +2252,7 @@ pro getscale
     endif
     state.data.boolGetScale = 1    
     limbArray = *state.data.limbArray
-    ;print, 'limbsss'
-    ;print, limbArray[0,*]
-    ;print, 'break'
-    ;print, limbArray[1,*]
+
     geometryListDivider = *state.data.geometryListDivider
     latArray = *state.data.latArray
 
